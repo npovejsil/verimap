@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "un-datacommons": {
+      "type": "http",
+      "url": "https://unsd-datacommons.gcp.un-icc.cloud/mcp"
+    }
+  }
+}
