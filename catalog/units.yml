@@ -1,0 +1,39 @@
+# Unit -> family mapping. Same family = safe to compare/plot on shared axes.
+# Different family = arithmetic across them is blocked by the key-matcher.
+#
+# Verified live: SDG uses "Percent" while WHO uses the raw
+# "undata/UNIT_MEASURE-PT_POP" facet id for the same 0-100 percent scale.
+# Without this mapping the two would be flagged incomparable.
+families:
+  percent:
+    members:
+      - Percent
+      - undata/UNIT_MEASURE-PT_POP
+      - undata/UNIT_MEASURE-PT_POP_U
+      - undata/UNIT_MEASURE-PT_POP_R
+    display: "%"
+    arithmetic: same_scale
+
+  count_persons:
+    members:
+      - undata/UNIT_MEASURE-COUNT_PERSONS
+    display: persons
+    arithmetic: additive
+
+  power_per_capita:
+    members:
+      - undata/UNIT_MEASURE-RATIO_POWER_W_PER_POP
+    display: watts per capita
+    arithmetic: ratio_no_sum
+
+  energy_intensity:
+    members:
+      - undata/UNIT_MEASURE-RATIO_ENERGY_MJ_PER_CR_USD_PPP2011
+    display: MJ per constant 2011 USD PPP
+    arithmetic: ratio_no_sum
+
+  index:
+    members:
+      - Index
+    display: index
+    arithmetic: ratio_no_sum

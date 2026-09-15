@@ -1,0 +1,8 @@
+version: 1
+topics:
+  energy_access:
+    label: "Energy access & renewables (SDG7)"
+    default_indicators: [sdg_elec_access, who_clean_cooking]
+  water_sanitation:
+    label: "Water & sanitation (SDG6)"
+    default_indicators: [sdg_safe_water]

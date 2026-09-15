@@ -1,0 +1,59 @@
+# Dimension value alias map. Agencies name the same concept differently:
+# verified live, SDG/UNSD writes rural as "DOU_R", WHO and ECLAC write "R".
+# A naive dimension-value comparison would fail to match these; this file
+# is the small alias layer that makes them resolve to the same canonical key.
+dimensions:
+  URBANIZATION:
+    label: Urbanization
+    canonical_values:
+      rural:
+        aliases: [R, DOU_R, RUR]
+        label: Rural
+      urban:
+        aliases: [U, DOU_U, URB]
+        label: Urban
+      total:
+        aliases: [_T, _Z]
+        label: Total
+
+  COOK_FUEL:
+    label: Household cooking fuel
+    canonical_values:
+      clean:
+        aliases: [CLEAN]
+        label: Clean fuels and technologies
+      polluting:
+        aliases: [POLLUTING]
+        label: Polluting fuels and technologies
+
+  SEX:
+    label: Sex
+    canonical_values:
+      female:
+        aliases: [F]
+        label: Female
+      male:
+        aliases: [M]
+        label: Male
+      total:
+        aliases: [_T]
+        label: Total
+
+  RENEWABLE_TECHNOLOGY:
+    label: Renewable technology
+    canonical_values:
+      solar: {aliases: [SOLAR], label: Solar}
+      wind: {aliases: [WIND], label: Wind}
+      hydropower: {aliases: [HYDROPOWER], label: Hydropower}
+      geothermal: {aliases: [GEOTHERMAL], label: Geothermal}
+      bioenergy: {aliases: [BIOENERGY], label: Bioenergy}
+      marine: {aliases: [MARINE], label: Marine}
+
+  INCOME_QUANTILE:
+    label: Income quantile
+    canonical_values:
+      q1: {aliases: [Q1], label: "Lowest quintile"}
+      q2: {aliases: [Q2], label: "Second quintile"}
+      q3: {aliases: [Q3], label: "Middle quintile"}
+      q4: {aliases: [Q4], label: "Fourth quintile"}
+      q5: {aliases: [Q5], label: "Highest quintile"}
