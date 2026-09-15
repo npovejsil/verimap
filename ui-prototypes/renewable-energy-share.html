@@ -1,0 +1,657 @@
+<title>Renewable Share Atlas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+:root{
+  color-scheme: light;
+  --plane:#f4f6f8;
+  --surface:#fdfdfe;
+  --surface-2:#eef1f5;
+  --ink:#0b0f14;
+  --ink-2:#4b555f;
+  --muted:#7e8892;
+  --hairline:#e0e5ea;
+  --rule:#c8d0d8;
+  --nodata:#e7eaee;
+  --accent:#2a78d6;
+  --focus:#eb6834;
+  --s0:#cde2fb; --s1:#9ec5f4; --s2:#6da7ec; --s3:#3987e5;
+  --s4:#256abf; --s5:#184f95; --s6:#0d366b;
+  --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:where(:not([data-theme="light"])){
+    color-scheme: dark;
+    --plane:#0b0e11;
+    --surface:#14181c;
+    --surface-2:#1b2026;
+    --ink:#ffffff;
+    --ink-2:#b8c1ca;
+    --muted:#7e8892;
+    --hairline:#262c32;
+    --rule:#333b43;
+    --nodata:#232930;
+    --accent:#3987e5;
+    --focus:#eb6834;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme: dark;
+  --plane:#0b0e11;
+  --surface:#14181c;
+  --surface-2:#1b2026;
+  --ink:#ffffff;
+  --ink-2:#b8c1ca;
+  --muted:#7e8892;
+  --hairline:#262c32;
+  --rule:#333b43;
+  --nodata:#232930;
+  --accent:#3987e5;
+  --focus:#eb6834;
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--plane); color:var(--ink);
+  font-family:var(--sans); font-size:14px; line-height:1.5;
+  -webkit-font-smoothing:antialiased;
+}
+.wrap{max-width:1360px; margin:0 auto; padding-inline:20px; padding-block:28px 40px}
+
+/* ---------- header ---------- */
+.masthead{
+  display:flex; flex-wrap:wrap; gap:28px 40px;
+  align-items:flex-end; justify-content:space-between;
+  padding-bottom:20px; border-bottom:1px solid var(--rule);
+}
+.eyebrow{
+  font-family:var(--mono); font-size:11px; font-weight:500;
+  letter-spacing:.12em; text-transform:uppercase; color:var(--muted);
+  margin:0 0 8px;
+}
+h1{
+  font-size:clamp(25px,3.4vw,36px); font-weight:600; letter-spacing:-.02em;
+  margin:0; text-wrap:balance; max-width:20ch;
+}
+.sub{margin:8px 0 0; color:var(--ink-2); max-width:56ch}
+.hero{display:flex; align-items:flex-end; gap:22px}
+.hero-fig{
+  font-family:var(--mono); font-size:clamp(40px,6vw,60px); font-weight:600;
+  line-height:.92; letter-spacing:-.03em; color:var(--accent);
+}
+.hero-fig sup{font-size:.4em; font-weight:500; vertical-align:super; margin-left:2px}
+.hero-meta{padding-bottom:6px}
+.hero-meta dt{
+  font-family:var(--mono); font-size:11px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--muted); margin:0;
+}
+.hero-meta dd{margin:2px 0 0; font-size:13px; color:var(--ink-2); max-width:22ch}
+
+/* ---------- layout ---------- */
+.grid{display:grid; grid-template-columns:minmax(0,1fr) 384px; gap:22px; margin-top:22px}
+@media (max-width:1060px){ .grid{grid-template-columns:minmax(0,1fr)} }
+
+.panel{
+  background:var(--surface); border:1px solid var(--hairline); border-radius:6px;
+}
+.panel-head{
+  display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center;
+  justify-content:space-between; padding:14px 16px; border-bottom:1px solid var(--hairline);
+}
+.panel-title{
+  font-family:var(--mono); font-size:11px; font-weight:500; letter-spacing:.11em;
+  text-transform:uppercase; color:var(--muted); margin:0;
+}
+
+/* ---------- legend ---------- */
+.legend{display:flex; align-items:center; gap:14px; flex-wrap:wrap}
+.ramp{display:flex; align-items:flex-end; gap:2px}
+.ramp-cell{width:38px}
+.ramp-swatch{display:block; height:11px; border-radius:1px}
+.ramp-tick{
+  font-family:var(--mono); font-size:10px; color:var(--muted);
+  margin-top:4px; display:block; text-align:left;
+}
+.legend-unit{font-family:var(--mono); font-size:10px; color:var(--muted); letter-spacing:.06em}
+.nodata-key{display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted)}
+.nodata-chip{width:14px; height:11px; border-radius:1px; background:var(--nodata); border:1px solid var(--rule)}
+
+/* ---------- map ---------- */
+.map-stage{position:relative; padding:6px 10px 0}
+svg.map{display:block; width:100%; height:auto}
+.map path{
+  stroke:var(--surface); stroke-width:.5; stroke-linejoin:round; cursor:pointer;
+}
+@media (prefers-reduced-motion: no-preference){
+  .map path{transition:fill .35s ease}
+}
+.map path.sel{stroke:var(--focus); stroke-width:1.8; paint-order:stroke}
+.map path:focus-visible{outline:2px solid var(--focus); outline-offset:1px}
+
+.tip{
+  position:absolute; pointer-events:none; opacity:0; transform:translate(-50%,-100%);
+  background:var(--ink); color:var(--plane); padding:7px 10px; border-radius:4px;
+  font-size:12px; white-space:nowrap; z-index:5; box-shadow:0 4px 14px rgba(0,0,0,.18);
+}
+.tip.on{opacity:1}
+.tip .tv{font-family:var(--mono); font-weight:600}
+.tip .tn{display:block; font-size:11px; opacity:.75; margin-top:1px}
+
+/* ---------- scrubber ---------- */
+.scrub{
+  display:flex; align-items:center; gap:14px;
+  padding:12px 16px 14px; border-top:1px solid var(--hairline);
+}
+.playbtn{
+  flex:none; width:36px; height:36px; border-radius:50%;
+  border:1px solid var(--rule); background:var(--surface-2); color:var(--ink);
+  cursor:pointer; display:grid; place-items:center; font-size:13px; line-height:1;
+}
+.playbtn:hover{border-color:var(--accent); color:var(--accent)}
+.playbtn:focus-visible{outline:2px solid var(--focus); outline-offset:2px}
+.scrub-main{flex:1; min-width:0}
+.scrub-top{display:flex; align-items:baseline; justify-content:space-between; gap:12px}
+.scrub-label{
+  font-family:var(--mono); font-size:11px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--muted);
+}
+.scrub-year{font-family:var(--mono); font-size:20px; font-weight:600; letter-spacing:-.01em}
+input[type=range]{width:100%; margin:8px 0 0; accent-color:var(--accent)}
+input[type=range]:focus-visible{outline:2px solid var(--focus); outline-offset:3px}
+.ticks{
+  display:flex; justify-content:space-between;
+  font-family:var(--mono); font-size:10px; color:var(--muted); margin-top:2px;
+}
+
+/* ---------- detail ---------- */
+.rail{display:flex; flex-direction:column; gap:22px}
+.detail-body{padding:16px}
+.detail-name{font-size:19px; font-weight:600; letter-spacing:-.01em; margin:0; text-wrap:balance}
+.detail-code{font-family:var(--mono); font-size:11px; color:var(--muted); letter-spacing:.08em}
+.detail-stats{display:flex; gap:26px; margin:14px 0 4px}
+.stat dt{
+  font-family:var(--mono); font-size:10px; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--muted); margin:0;
+}
+.stat dd{margin:3px 0 0; font-family:var(--mono); font-size:24px; font-weight:600; letter-spacing:-.02em}
+.spark{margin-top:14px}
+.spark svg{display:block; width:100%; height:auto; overflow:visible}
+.spark-key{display:flex; gap:16px; margin-top:8px; font-size:11px; color:var(--ink-2)}
+.spark-key span{display:flex; align-items:center; gap:6px}
+.kdot{width:14px; height:2px; border-radius:1px; display:inline-block}
+.hint{font-size:12px; color:var(--muted); margin:12px 0 0}
+
+/* ---------- table ---------- */
+.tools{padding:12px 16px; border-bottom:1px solid var(--hairline); display:flex; gap:8px}
+input[type=search]{
+  flex:1; min-width:0; font-family:var(--sans); font-size:13px; color:var(--ink);
+  background:var(--surface-2); border:1px solid var(--rule); border-radius:4px;
+  padding:7px 10px;
+}
+input[type=search]:focus-visible{outline:2px solid var(--focus); outline-offset:1px}
+select{
+  font-family:var(--sans); font-size:12px; color:var(--ink); background:var(--surface-2);
+  border:1px solid var(--rule); border-radius:4px; padding:7px 8px;
+}
+select:focus-visible{outline:2px solid var(--focus); outline-offset:1px}
+.tablescroll{max-height:430px; overflow:auto}
+table{width:100%; border-collapse:collapse; font-size:13px}
+thead th{
+  position:sticky; top:0; background:var(--surface); z-index:1;
+  font-family:var(--mono); font-size:10px; font-weight:500; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--muted); text-align:left;
+  padding:8px 16px; border-bottom:1px solid var(--hairline); white-space:nowrap;
+}
+thead th.num{text-align:right}
+tbody tr{border-bottom:1px solid var(--hairline); cursor:pointer}
+tbody tr:last-child{border-bottom:0}
+tbody tr:hover{background:var(--surface-2)}
+tbody tr[aria-selected="true"]{background:var(--surface-2); box-shadow:inset 3px 0 0 var(--focus)}
+tbody tr:focus-visible{outline:2px solid var(--focus); outline-offset:-2px}
+td{padding:7px 16px; vertical-align:middle}
+td.rank{font-family:var(--mono); color:var(--muted); width:1%; white-space:nowrap}
+td.val{font-family:var(--mono); font-variant-numeric:tabular-nums; text-align:right; font-weight:500; width:1%; white-space:nowrap}
+.swatch{
+  display:inline-block; width:9px; height:9px; border-radius:1px;
+  margin-right:8px; vertical-align:baseline; border:1px solid rgba(0,0,0,.12);
+}
+.offmap{
+  font-family:var(--mono); font-size:9px; letter-spacing:.07em; text-transform:uppercase;
+  color:var(--muted); border:1px solid var(--rule); border-radius:2px;
+  padding:1px 4px; margin-left:8px; white-space:nowrap;
+}
+.empty{padding:22px 16px; color:var(--muted); font-size:13px}
+
+/* ---------- footer ---------- */
+footer{
+  margin-top:26px; padding-top:16px; border-top:1px solid var(--rule);
+  display:flex; flex-wrap:wrap; gap:10px 32px; justify-content:space-between;
+  font-size:12px; color:var(--muted);
+}
+footer p{margin:0; max-width:62ch}
+footer a{color:var(--ink-2)}
+.src{font-family:var(--mono); font-size:11px; letter-spacing:.04em}
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <div>
+      <p class="eyebrow">SDG indicator 7.2.1 &middot; UN Data Commons</p>
+      <h1>Renewable Share Atlas</h1>
+      <p class="sub">Renewable energy as a share of total final energy consumption, by country, 2010&ndash;2023.</p>
+    </div>
+    <div class="hero">
+      <div class="hero-fig" id="heroFig">18.0<sup>%</sup></div>
+      <dl class="hero-meta">
+        <dt>World, <span id="heroYear">2023</span></dt>
+        <dd id="heroDelta">UN world aggregate</dd>
+      </dl>
+    </div>
+  </header>
+
+  <div class="grid">
+    <section class="panel" aria-label="World map">
+      <div class="panel-head">
+        <h2 class="panel-title">Share of final energy consumption</h2>
+        <div class="legend">
+          <span class="legend-unit">%</span>
+          <div class="ramp" id="ramp"></div>
+          <span class="nodata-key"><span class="nodata-chip"></span>no data</span>
+        </div>
+      </div>
+
+      <div class="map-stage" id="stage">
+        <svg class="map" id="map" role="img" aria-label="Choropleth of renewable energy share by country"></svg>
+        <div class="tip" id="tip" role="status" aria-live="polite"></div>
+      </div>
+
+      <div class="scrub">
+        <button class="playbtn" id="play" aria-label="Play year animation">&#9658;</button>
+        <div class="scrub-main">
+          <div class="scrub-top">
+            <label class="scrub-label" for="year">Reporting year</label>
+            <span class="scrub-year" id="yearOut">2023</span>
+          </div>
+          <input type="range" id="year" min="0" max="13" value="13" step="1" aria-label="Reporting year">
+          <div class="ticks"><span>2010</span><span>2023</span></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="rail">
+      <section class="panel" aria-label="Selected place">
+        <div class="panel-head"><h2 class="panel-title">Selection</h2></div>
+        <div class="detail-body">
+          <h3 class="detail-name" id="dName">World</h3>
+          <span class="detail-code" id="dCode">UN aggregate</span>
+          <dl class="detail-stats">
+            <div class="stat"><dt>Share</dt><dd id="dVal">18.0%</dd></div>
+            <div class="stat"><dt>Rank</dt><dd id="dRank">&mdash;</dd></div>
+            <div class="stat"><dt>vs 2010</dt><dd id="dTrend">+3.0</dd></div>
+          </dl>
+          <div class="spark"><svg id="spark" viewBox="0 0 340 120" role="img" aria-label="Trend 2010 to 2023"></svg></div>
+          <div class="spark-key">
+            <span><i class="kdot" style="background:var(--accent)"></i><span id="kName">World</span></span>
+            <span><i class="kdot" style="background:var(--muted)"></i>World reference</span>
+          </div>
+          <p class="hint">Select any country on the map or in the table below.</p>
+        </div>
+      </section>
+
+      <section class="panel" aria-label="All countries">
+        <div class="panel-head"><h2 class="panel-title">All reporting countries</h2></div>
+        <div class="tools">
+          <input type="search" id="q" placeholder="Search country&hellip;" aria-label="Search country">
+          <select id="sort" aria-label="Sort order">
+            <option value="desc">Highest first</option>
+            <option value="asc">Lowest first</option>
+            <option value="az">A&ndash;Z</option>
+          </select>
+        </div>
+        <div class="tablescroll">
+          <table>
+            <thead><tr><th>#</th><th>Country</th><th class="num">Share</th></tr></thead>
+            <tbody id="rows"></tbody>
+          </table>
+          <p class="empty" id="empty" hidden>No country matches that search.</p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <footer>
+    <p>Small island states and territories without geometry in the 110m basemap &mdash; Singapore, Malta, Maldives, Mauritius and 56 others &mdash; carry data but cannot be drawn at this scale. They are marked <span class="offmap">off map</span> in the table.</p>
+    <p class="src">Source: United Nations Statistics Division, SDG Data Portal, via UN Data Commons. Indicator EG_FEC_RNEW, annual, percent.</p>
+  </footer>
+</div>
+
+<script src="../data/renewable-share.js"></script>
+<script>
+(function(){
+  "use strict";
+  var D = window.UNDATA;
+  var YEARS = D.years, RAMP = ["--s0","--s1","--s2","--s3","--s4","--s5","--s6"];
+  var CUTS = [5,15,30,45,60,75];
+  var css = getComputedStyle(document.documentElement);
+  function step(i){ return css.getPropertyValue(RAMP[i]).trim(); }
+  function binOf(v){ for(var i=0;i<CUTS.length;i++){ if(v<CUTS[i]) return i; } return 6; }
+  function colorOf(v){ return v==null ? css.getPropertyValue("--nodata").trim() : step(binOf(v)); }
+  function fmt(v){ return v==null ? "—" : v.toFixed(1)+"%"; }
+
+  var year = YEARS[YEARS.length-1];
+  var sel = null; // null = World
+
+  /* ---------- legend ---------- */
+  var ramp = document.getElementById("ramp");
+  var edges = [0].concat(CUTS);
+  ramp.innerHTML = edges.map(function(e,i){
+    return '<span class="ramp-cell"><span class="ramp-swatch" style="background:var('+RAMP[i]+')"></span>'+
+           '<span class="ramp-tick">'+e+'</span></span>';
+  }).join("");
+
+  /* ---------- projection: Natural Earth 1 ---------- */
+  function project(lon, lat){
+    var l = lon*Math.PI/180, p = lat*Math.PI/180;
+    var p2 = p*p, p4 = p2*p2;
+    return [
+      l * (0.8707 - 0.131979*p2 + p4*(-0.013791 + p4*(0.003971*p2 - 0.001529*p4))),
+      p * (1.007226 + p2*(0.015085 + p4*(-0.044475 + 0.028874*p2 - 0.005916*p4)))
+    ];
+  }
+
+  var feats = D.geo.features;
+
+  // A ring that straddles the antimeridian arrives with longitudes that jump
+  // +/-360; left as-is it draws a straight line clean across the map. Unwrap it
+  // into a continuous run, then emit a 360-shifted copy so the far side still
+  // renders against the opposite edge.
+  function unwrap(ring){
+    var out=[ring[0].slice()], prev=ring[0][0], shift=0;
+    for(var i=1;i<ring.length;i++){
+      var d = ring[i][0] + shift - prev;
+      if(d > 180) shift -= 360; else if(d < -180) shift += 360;
+      var lon = ring[i][0] + shift;
+      out.push([lon, ring[i][1]]); prev = lon;
+    }
+    return out;
+  }
+
+  // Latitude alone drives projected y, so the vertical extent comes from the
+  // data; the horizontal extent is the full globe, so wrapped parts clip away.
+  var minY=Infinity, maxY=-Infinity;
+  function scanY(rings){
+    for(var r=0;r<rings.length;r++) for(var c=0;c<rings[r].length;c++){
+      var y = project(0, rings[r][c][1])[1];
+      if(y<minY)minY=y; if(y>maxY)maxY=y;
+    }
+  }
+  feats.forEach(function(f){
+    if(f.geometry.type==="Polygon") scanY(f.geometry.coordinates);
+    else f.geometry.coordinates.forEach(scanY);
+  });
+
+  var minX = project(-180,0)[0], maxX = project(180,0)[0];
+  var W = 1000, K = W/(maxX-minX), H = Math.round((maxY-minY)*K);
+
+  function trace(ring, off){
+    var d = "";
+    for(var i=0;i<ring.length;i++){
+      var q = project(ring[i][0]+off, ring[i][1]);
+      d += (i?"L":"M") + ((q[0]-minX)*K).toFixed(1) + " " + ((maxY-q[1])*K).toFixed(1);
+    }
+    return d + "Z";
+  }
+  function ringPath(raw){
+    var ring = unwrap(raw), lo=Infinity, hi=-Infinity;
+    for(var i=0;i<ring.length;i++){
+      if(ring[i][0]<lo) lo=ring[i][0];
+      if(ring[i][0]>hi) hi=ring[i][0];
+    }
+    var d = trace(ring, 0);
+    if(hi > 180) d += trace(ring, -360);
+    if(lo < -180) d += trace(ring, 360);
+    return d;
+  }
+  function featPath(f){
+    var g = f.geometry;
+    if(g.type==="Polygon") return g.coordinates.map(ringPath).join("");
+    return g.coordinates.map(function(p){ return p.map(ringPath).join(""); }).join("");
+  }
+
+  var svg = document.getElementById("map");
+  svg.setAttribute("viewBox","0 0 "+W+" "+H);
+  var paths = {};
+  var frag = document.createDocumentFragment();
+  feats.forEach(function(f){
+    var el = document.createElementNS("http://www.w3.org/2000/svg","path");
+    el.setAttribute("d", featPath(f));
+    el.setAttribute("tabindex","-1");
+    el.dataset.id = f.id;
+    var nm = D.names[f.id] || f.properties.name;
+    el.appendChild(document.createElementNS("http://www.w3.org/2000/svg","title"))
+      .textContent = nm;
+    if(D.series[f.id]) paths[f.id] = el;
+    frag.appendChild(el);
+  });
+  svg.appendChild(frag);
+
+  /* ---------- map paint ---------- */
+  function valAt(id, y){
+    var s = id===null ? D.world : D.series[id];
+    if(!s) return null;
+    var v = s[String(y)];
+    return v==null ? null : v;
+  }
+  function paint(){
+    for(var i=0;i<feats.length;i++){
+      var f = feats[i], el = paths[f.id];
+      if(!el) continue;
+      el.setAttribute("fill", colorOf(valAt(f.id, year)));
+    }
+    var nodata = css.getPropertyValue("--nodata").trim();
+    svg.querySelectorAll("path").forEach(function(p){
+      if(!p.getAttribute("fill")) p.setAttribute("fill", nodata);
+    });
+  }
+
+  /* ---------- ranking ---------- */
+  var ids = Object.keys(D.series);
+  var drawable = {}; feats.forEach(function(f){ drawable[f.id]=1; });
+  function ranked(y){
+    var list = ids.filter(function(id){ return valAt(id,y)!=null; });
+    list.sort(function(a,b){ return valAt(b,y)-valAt(a,y); });
+    return list;
+  }
+  var rankCache = {}, orderCache = {};
+  function ranks(y){
+    if(!rankCache[y]){
+      var list = ranked(y), m = {};
+      list.forEach(function(id,i){ m[id]=i+1; });
+      rankCache[y]=m; orderCache[y]=list;
+    }
+    return rankCache[y];
+  }
+
+  /* ---------- hero ---------- */
+  function hero(){
+    var v = D.world[String(year)], base = D.world[String(YEARS[0])];
+    document.getElementById("heroFig").innerHTML = v.toFixed(1)+'<sup>%</sup>';
+    document.getElementById("heroYear").textContent = year;
+    var d = v-base;
+    document.getElementById("heroDelta").textContent =
+      year===YEARS[0] ? "UN world aggregate" :
+      (d>=0?"+":"−")+Math.abs(d).toFixed(1)+" points since 2010";
+  }
+
+  /* ---------- detail + sparkline ---------- */
+  function sparkline(id){
+    var s = id===null ? D.world : D.series[id];
+    var pts = YEARS.map(function(y){ return [y, s[String(y)]]; });
+    var wpts = YEARS.map(function(y){ return [y, D.world[String(y)]]; });
+    var all = pts.concat(wpts).map(function(p){ return p[1]; })
+                 .filter(function(v){ return v!=null; });
+    var top = Math.max.apply(null, all), hi = Math.ceil(top/10)*10 || 10;
+    var X0=8, X1=306, Y0=12, Y1=94;
+    function px(y){ return X0 + (X1-X0)*(y-YEARS[0])/(YEARS[YEARS.length-1]-YEARS[0]); }
+    function py(v){ return Y1 - (Y1-Y0)*(v/hi); }
+    function line(a){
+      var d="", started=false;
+      a.forEach(function(p){
+        if(p[1]==null){ started=false; return; }
+        d += (started?"L":"M")+px(p[0]).toFixed(1)+" "+py(p[1]).toFixed(1);
+        started=true;
+      });
+      return d;
+    }
+    var accent = css.getPropertyValue("--accent").trim();
+    var muted  = css.getPropertyValue("--muted").trim();
+    var grid   = css.getPropertyValue("--hairline").trim();
+    var last = pts.filter(function(p){ return p[1]!=null; }).pop();
+    var out =
+      '<line x1="'+X0+'" y1="'+py(hi)+'" x2="'+X1+'" y2="'+py(hi)+'" stroke="'+grid+'" stroke-width="1"/>'+
+      '<line x1="'+X0+'" y1="'+Y1+'" x2="'+X1+'" y2="'+Y1+'" stroke="'+grid+'" stroke-width="1"/>'+
+      '<text x="'+X1+'" y="'+(py(hi)-5)+'" fill="'+muted+'" font-family="IBM Plex Mono, monospace" font-size="10" text-anchor="end">'+hi+'%</text>'+
+      '<text x="'+X0+'" y="'+(Y1+16)+'" fill="'+muted+'" font-family="IBM Plex Mono, monospace" font-size="10">'+YEARS[0]+'</text>'+
+      '<text x="'+X1+'" y="'+(Y1+16)+'" fill="'+muted+'" font-family="IBM Plex Mono, monospace" font-size="10" text-anchor="end">'+YEARS[YEARS.length-1]+'</text>'+
+      '<path d="'+line(wpts)+'" fill="none" stroke="'+muted+'" stroke-width="1.5" stroke-dasharray="3 3" stroke-linejoin="round"/>';
+    if(id!==null) out += '<path d="'+line(pts)+'" fill="none" stroke="'+accent+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+    var cur = valAt(id, year);
+    if(cur!=null) out += '<circle cx="'+px(year).toFixed(1)+'" cy="'+py(cur).toFixed(1)+'" r="4" fill="'+(id===null?muted:accent)+'" stroke="'+css.getPropertyValue("--surface").trim()+'" stroke-width="2"/>';
+    if(last && id!==null) out += '<text x="'+(px(last[0])+8)+'" y="'+(py(last[1])+4)+'" fill="'+accent+'" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600">'+last[1].toFixed(1)+'</text>';
+    document.getElementById("spark").innerHTML = out;
+  }
+
+  function detail(){
+    var id = sel, nm = id===null ? "World" : (D.names[id]||id);
+    document.getElementById("dName").textContent = nm;
+    document.getElementById("dCode").textContent = id===null ? "UN aggregate" : id;
+    document.getElementById("kName").textContent = nm;
+    var v = valAt(id, year);
+    document.getElementById("dVal").textContent = fmt(v);
+    var r = id===null ? null : ranks(year)[id];
+    document.getElementById("dRank").textContent =
+      r ? r+"/"+orderCache[year].length : "—";
+    var base = valAt(id, YEARS[0]);
+    document.getElementById("dTrend").textContent =
+      (v==null||base==null) ? "—" :
+      (v-base>=0?"+":"−")+Math.abs(v-base).toFixed(1);
+    sparkline(id);
+  }
+
+  /* ---------- table ---------- */
+  var tbody = document.getElementById("rows"), emptyMsg = document.getElementById("empty");
+  var q = document.getElementById("q"), sortSel = document.getElementById("sort");
+  function table(){
+    ranks(year);
+    var order = orderCache[year].slice();
+    var missing = ids.filter(function(id){ return valAt(id,year)==null; });
+    var mode = sortSel.value;
+    if(mode==="asc") order.reverse();
+    if(mode==="az"){
+      order = ids.slice().sort(function(a,b){
+        return (D.names[a]||a).localeCompare(D.names[b]||b);
+      });
+      missing = [];
+    }
+    var list = mode==="az" ? order : order.concat(missing);
+    var term = q.value.trim().toLowerCase();
+    if(term) list = list.filter(function(id){
+      return (D.names[id]||id).toLowerCase().indexOf(term) > -1 ||
+             id.toLowerCase().indexOf(term) > -1;
+    });
+    var rk = rankCache[year];
+    tbody.innerHTML = list.map(function(id){
+      var v = valAt(id, year);
+      return '<tr tabindex="0" role="button" data-id="'+id+'"'+
+        (id===sel?' aria-selected="true"':'')+'>'+
+        '<td class="rank">'+(rk[id]||"—")+'</td>'+
+        '<td><span class="swatch" style="background:'+colorOf(v)+'"></span>'+
+        (D.names[id]||id)+
+        (drawable[id]?'':'<span class="offmap">off map</span>')+'</td>'+
+        '<td class="val">'+fmt(v)+'</td></tr>';
+    }).join("");
+    emptyMsg.hidden = list.length>0;
+  }
+
+  /* ---------- selection ---------- */
+  function select(id){
+    sel = id;
+    Object.keys(paths).forEach(function(k){ paths[k].classList.toggle("sel", k===id); });
+    svg.querySelectorAll("path.sel").forEach(function(p){ p.parentNode.appendChild(p); });
+    detail(); table();
+  }
+
+  /* ---------- tooltip ---------- */
+  var tip = document.getElementById("tip"), stage = document.getElementById("stage");
+  function showTip(e, id){
+    var v = valAt(id, year);
+    tip.innerHTML = '<span class="tv">'+fmt(v)+'</span> <span class="tn">'+
+      (D.names[id]||id)+" · "+year+'</span>';
+    var r = stage.getBoundingClientRect();
+    tip.style.left = (e.clientX-r.left)+"px";
+    tip.style.top  = (e.clientY-r.top-10)+"px";
+    tip.classList.add("on");
+  }
+  svg.addEventListener("mousemove", function(e){
+    var t = e.target.closest("path");
+    if(t && D.series[t.dataset.id]) showTip(e, t.dataset.id);
+    else tip.classList.remove("on");
+  });
+  svg.addEventListener("mouseleave", function(){ tip.classList.remove("on"); });
+  svg.addEventListener("click", function(e){
+    var t = e.target.closest("path");
+    if(!t || !D.series[t.dataset.id]) return;
+    select(t.dataset.id===sel ? null : t.dataset.id);
+  });
+
+  tbody.addEventListener("click", function(e){
+    var tr = e.target.closest("tr"); if(tr) select(tr.dataset.id===sel?null:tr.dataset.id);
+  });
+  tbody.addEventListener("keydown", function(e){
+    if(e.key!=="Enter" && e.key!==" ") return;
+    var tr = e.target.closest("tr"); if(!tr) return;
+    e.preventDefault(); select(tr.dataset.id===sel?null:tr.dataset.id);
+  });
+  q.addEventListener("input", table);
+  sortSel.addEventListener("change", table);
+
+  /* ---------- year ---------- */
+  var slider = document.getElementById("year");
+  slider.max = String(YEARS.length-1);
+  slider.value = String(YEARS.length-1);
+  function setYear(i){
+    year = YEARS[i];
+    document.getElementById("yearOut").textContent = year;
+    paint(); hero(); detail(); table();
+  }
+  slider.addEventListener("input", function(){ stop(); setYear(+slider.value); });
+
+  var timer = null, btn = document.getElementById("play");
+  function stop(){
+    if(timer){ clearInterval(timer); timer=null; }
+    btn.innerHTML = "&#9658;"; btn.setAttribute("aria-label","Play year animation");
+  }
+  btn.addEventListener("click", function(){
+    if(timer){ stop(); return; }
+    if(+slider.value >= YEARS.length-1){ slider.value = "0"; setYear(0); }
+    btn.innerHTML = "&#9616;&#9616;"; btn.setAttribute("aria-label","Pause year animation");
+    timer = setInterval(function(){
+      var n = +slider.value + 1;
+      if(n > YEARS.length-1){ stop(); return; }
+      slider.value = String(n); setYear(n);
+    }, 750);
+  });
+
+  /* ---------- theme re-paint ---------- */
+  var mq = window.matchMedia("(prefers-color-scheme: dark)");
+  function refresh(){ css = getComputedStyle(document.documentElement); paint(); detail(); table(); }
+  if(mq.addEventListener) mq.addEventListener("change", refresh);
+  new MutationObserver(refresh).observe(document.documentElement,
+    {attributes:true, attributeFilter:["data-theme"]});
+
+  /* ---------- boot ---------- */
+  paint(); hero(); detail(); table();
+})();
+</script>
