@@ -10,9 +10,7 @@ provenance rather than picking a winner.
 | File | What it is |
 |---|---|
 | `groundtruth_demo.html` | The demo. Self-contained — open it in a browser, no server needed. |
-| `undc.py` | Zero-dependency client for the UN Data Commons MCP server. |
 | `groundtruth_data.json` | Extracted dataset behind the demo. Regenerable; see below. |
-| `GCHD_how_to_use_solr.md` | Organiser guide to the UNICEF hazard database. **Contains read-only credentials — keep this repo private.** |
 | `.mcp.json` | Wires the MCP server into Claude Code automatically. |
 
 ## The demo
@@ -29,23 +27,8 @@ constant in the page — search for `THRESHOLDS` to retune everything at once.
 
 ## Querying the data yourself
 
-`undc.py` needs only Python 3.8+ and the standard library.
-
-```bash
-python3 undc.py tools                  # the six MCP tools
-python3 undc.py playbook single        # the server's own research playbook
-python3 undc.py search "renewable energy" --places Kenya
-python3 undc.py obs --var undata/sdg/EN_ATM_CO2 --place country/KEN --start 2018 --end 2023
-python3 undc.py research "life expectancy" --places India
-```
-
-Or from Python:
-
-```python
-from undc import DataCommons
-dc = DataCommons()
-hits = dc.search_indicators("maternal mortality", places=["Kenya"])
-```
+`.mcp.json` wires the UN Data Commons MCP server into Claude Code automatically, so its
+six tools are available in any session opened from this directory.
 
 Discovery is always three steps: `search_indicators` → `get_variable_metadata` →
 `get_observations`. Never hardcode a DCID; resolve it through a search call. A guessed
@@ -73,9 +56,9 @@ is not yet a committed script; it walks these steps per country:
   official spelling — returns a 500. So does `"Turkiye"`. One bad name kills the whole batch,
   so resolve places one at a time. Reported to the organisers.
 - **Date ranges need `date="range"`.** Passing `date_range_start`/`_end` while `date` is
-  still `"latest"` silently returns only the latest point. `undc.py` sets this for you.
-- **Search takes human-readable names; observations take DCIDs.** `--places Kenya`, then
-  `--place country/KEN`.
+  still `"latest"` silently returns only the latest point.
+- **Search takes human-readable names; observations take DCIDs.** Search for `Kenya`, then
+  request observations on `country/KEN`.
 - **The REST API is federated** and does not enforce the UN statistical boundary — it will
   answer with other publishers' data without warning. Discover through MCP; use REST only
   for structural paths from identifiers you already hold.
@@ -102,4 +85,4 @@ national figure in that index. Units flagged `No Data` / `Insufficient Data` /
 
 - UN System Data Commons MCP — `https://unsd-datacommons.gcp.un-icc.cloud/mcp`
 - Integration guide — https://projects.officialstatistics.org/undata2/undatacommons-mcp/
-- UNICEF Global Child Hazard Database — Solr `hazard` core (see the guide in this repo)
+- UNICEF Global Child Hazard Database — Solr `hazard` core (access details from the organisers)
