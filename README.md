@@ -91,7 +91,18 @@ is not yet a committed script; it walks these steps per country:
   answer with other publishers' data without warning. Discover through MCP; use REST only
   for structural paths from identifiers you already hold.
 - **GCHD has no geometry and no names** — only `ref_area` codes like `KEN_0030_0008_V1`.
-  Mapping admin-2 units needs a boundary file from the GCHD team; requested on Discord.
+  The boundaries behind those codes live in **[GeoRepo](https://georepo.unicef.org/)**, a registry
+  UNICEF runs itself (confirmed by the organisers, 16 Sep 2026). Access is granted per user and the
+  API needs a key you generate from the platform once you hold view rights; the site is SSO-gated,
+  so the API reference is only visible after login. GIS contact: jburdziej@unicef.org.
+- **Our extracted payload drops `ref_area`.** The PM2.5 records keep `u_val` and `u_pop` as parallel
+  arrays with no unit identifier, so there is nothing for a GeoRepo boundary to join against. Adding
+  an admin-2 map means re-running the Solr step and carrying the codes through.
+- **Do not try to inline every admin-2 unit.** Country outlines cost ~39.5 bytes per coordinate at
+  full float precision. At a conservative 40 coordinates per unit, Egypt's 404 units land near 0.6 MB
+  — fine — but all 11,662 would be roughly 18 MB, against a current page of 333 KB. Rounding
+  coordinates to 3 decimal places (~100 m, far finer than a choropleth needs) roughly halves it.
+  Map one country, and Egypt is the one worth mapping.
 
 ## What the numbers do and don't show
 
