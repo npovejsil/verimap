@@ -1,5 +1,5 @@
 {
-  "_note": "DCIDs in this file were resolved with the un-datacommons MCP search_indicators tool and verified with get_variable_metadata. Do not hand-edit a dcid; re-resolve it. Chrome copy (title/eyebrow/blurb/valueNoun/deltaNoun) is hand-authored.",
+  "_note": "DCIDs in this file are resolved before use, never hand-written: undata/* variables via the un-datacommons MCP search_indicators + get_variable_metadata tools, and base Data Commons variables (which search_indicators does not index) via the REST /node endpoint. Each indicator records how. Chrome copy is hand-authored.",
   "resolvedVia": "search_indicators + get_variable_metadata",
   "resolvedAt": "2026-09-15",
   "rest": "https://unsd-datacommons.gcp.un-icc.cloud/core/api/v2",
@@ -137,6 +137,34 @@
         "name": "UN Statistics Division, SDG Data Portal",
         "indicatorCode": "EG_EGY_RNEW"
       }
+    },
+    {
+      "slug": "electricity-generation",
+      "dcid": "Annual_Generation_Electricity",
+      "variable": "Annual Energy Generation (All Fuels, All Sectors)",
+      "resolvedVia": "REST /node — a base Data Commons variable, outside the undata/* namespace that search_indicators indexes",
+      "title": "Electricity Generation Atlas",
+      "eyebrow": "UNSD Energy Statistics · UN Data Commons",
+      "blurb": "Total electricity generated, all fuels and all sectors",
+      "panelTitle": "Annual generation",
+      "valueNoun": "Generated",
+      "direction": "high",
+      "requireUnit": "KilowattHour",
+      "scale": 1e-09,
+      "aggregate": "sum",
+      "unit": {
+        "label": "terawatt-hours",
+        "symbol": "TWh",
+        "suffix": " TWh",
+        "sup": "",
+        "decimals": 1
+      },
+      "deltaNoun": "TWh",
+      "source": {
+        "name": "UN Statistics Division, Energy Statistics Database",
+        "indicatorCode": "Annual_Generation_Electricity"
+      },
+      "sourceNote": "Reached through the base Data Commons graph rather than the curated undata namespace, so it sits outside the boundary the MCP tools enforce."
     }
   ]
 }

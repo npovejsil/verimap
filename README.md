@@ -54,7 +54,7 @@ Full docs: https://projects.officialstatistics.org/undata2/undatacommons-mcp/ins
 ## The map prototype
 
 [ui-prototypes/renewable-energy-share.html](ui-prototypes/renewable-energy-share.html) is a
-choropleth atlas that renders **five UN Data Commons indicators** from one code path. The
+choropleth atlas that renders **six UN Data Commons indicators** from one code path. The
 picker in the masthead swaps indicator; the legend, units, scale breaks, ranking direction,
 world reference and source attribution all swap with it, driven entirely by metadata in each
 data file. Nothing about the page is specific to any one indicator.
@@ -75,9 +75,41 @@ carries the view — `#energy-intensity&y=2015&c=DEU` — so any state is sharea
 | Energy intensity | `undata/sdg/EG_EGY_PRIM` | MJ per const. 2011 USD PPP | 1990–2023 | SDG portal |
 | CO₂ per capita | `undata/undphdro/PHDI_co2_prod` | t CO₂-eq per person | 1990–2023 | UNDP HDRO |
 | Renewable capacity | `undata/sdg/EG_EGY_RNEW` | watts per person | 2000–2024 | SDG portal |
+| Electricity generation | `Annual_Generation_Electricity` | TWh | 1990–2024 | UNSD Energy Statistics |
 
-Two of these are "lower is better", and they come from two different provenances, which is
-the point — it forces the page to be genuinely indicator-agnostic rather than incidentally so.
+Two of these are "lower is better", and they span three provenances, which is the point — it
+forces the page to be genuinely indicator-agnostic rather than incidentally so.
+
+### On indicators outside the undata namespace
+
+`search_indicators` only ever returns `undata/*` variables: the MCP layer enforces the UN
+statistical boundary. Electricity generation is a **base Data Commons variable**, so it is
+not discoverable that way — it was resolved through the REST `/node` endpoint instead, and
+its config entry records that in `resolvedVia`. Its data is still UN-sourced (UNSD Energy
+Statistics), but it is reached outside the curated namespace, and the page says so under the
+source line via the indicator's `sourceNote`.
+
+Three config fields exist for these variables, and all three earn their keep here:
+
+- **`requireUnit`** pins the facet by unit. `Annual_Generation_Electricity` lists an EIA
+  facet in **GigawattHour** first for the USA and a UNSD **KilowattHour** facet for the other
+  227 countries. Taking the preferred facet per country would put the USA on the map a
+  million-fold out, silently, with only a generic multi-facet warning. Pinning the unit drops
+  countries that have no facet in it rather than mixing.
+- **`scale`** converts at generation time (`1e-9`, kWh → TWh).
+- **`aggregate: "sum"`** builds the world reference by summing countries, since averaging an
+  absolute total is meaningless. A total is only published for years whose reporters account
+  for ≥95% of the best-covered year's output — counting countries is the wrong test, because
+  most years miss only tiny states while 2019 and 2024 miss giants. Thin years stay on the
+  map and simply carry no world figure.
+
+Note that a choropleth of an absolute total is dominated by large countries by construction;
+the quantile bins stay evenly filled, but the big generators are also the big landmasses.
+A per-capita variant would read better cartographically.
+
+Worth knowing if you go looking: **IPUMS is not on this instance** — no source node and no
+provenance under any spelling. World Bank *is* present (six datasets including World
+Development Indicators, 1960–2024) and reachable the same way generation was.
 
 ### Data layout
 
