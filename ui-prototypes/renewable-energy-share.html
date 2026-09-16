@@ -354,6 +354,7 @@ footer a{color:var(--ink-2)}
 <script src="../data/indicators/co2-per-capita.js"></script>
 <script src="../data/indicators/renewable-capacity.js"></script>
 <script src="../data/indicators/electricity-generation.js"></script>
+<script src="../data/indicators/transmission-losses.js"></script>
 <script>
 (function(){
   "use strict";
@@ -366,7 +367,8 @@ footer a{color:var(--ink-2)}
   // Menu order, filtered to what actually loaded, so a missing data file
   // shortens the picker instead of blanking the page.
   var ORDER = ["renewable-share","electricity-access","energy-intensity",
-               "co2-per-capita","renewable-capacity","electricity-generation"].filter(function(k){ return IND[k]; });
+               "co2-per-capita","renewable-capacity","electricity-generation",
+               "transmission-losses"].filter(function(k){ return IND[k]; });
   if(!ORDER.length) throw new Error("no indicator data loaded");
 
   // Rebound by setIndicator(); every read below goes through these.
@@ -549,6 +551,9 @@ footer a{color:var(--ink-2)}
     if(D.worldKind==="sum") return refAt(year)==null
       ? "No world total for "+year+" (reporting too incomplete)"
       : "World total, summed across reporting countries";
+    if(D.worldKind==="ratio") return refAt(year)==null
+      ? "No world figure for "+year+" (reporting too incomplete)"
+      : "World figure: total losses over total supply";
     return "UN world aggregate";
   }
   function hero(){
@@ -765,7 +770,8 @@ footer a{color:var(--ink-2)}
     text("colVal", D.valueNoun);
     text("refKey", D.worldKind==="reported" ? "World aggregate"
                  : D.worldKind==="median" ? "Median country"
-                 : D.worldKind==="sum" ? "World total" : "World average (est.)");
+                 : D.worldKind==="sum" ? "World total"
+                 : D.worldKind==="ratio" ? "World figure" : "World average (est.)");
     svg.setAttribute("aria-label", "Choropleth of " + D.variable + " by country");
     document.getElementById("spark").setAttribute("aria-label", "Trend " + span);
     // "Highest first" would read as a leaderboard of the worst performers

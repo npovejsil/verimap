@@ -54,7 +54,7 @@ Full docs: https://projects.officialstatistics.org/undata2/undatacommons-mcp/ins
 ## The map prototype
 
 [ui-prototypes/renewable-energy-share.html](ui-prototypes/renewable-energy-share.html) is a
-choropleth atlas that renders **six UN Data Commons indicators** from one code path. The
+choropleth atlas that renders **seven UN Data Commons indicators** from one code path. The
 picker in the masthead swaps indicator; the legend, units, scale breaks, ranking direction,
 world reference and source attribution all swap with it, driven entirely by metadata in each
 data file. Nothing about the page is specific to any one indicator.
@@ -76,6 +76,7 @@ carries the view — `#energy-intensity&y=2015&c=DEU` — so any state is sharea
 | CO₂ per capita | `undata/undphdro/PHDI_co2_prod` | t CO₂-eq per person | 1990–2023 | UNDP HDRO |
 | Renewable capacity | `undata/sdg/EG_EGY_RNEW` | watts per person | 2000–2024 | SDG portal |
 | Electricity generation | `Annual_Generation_Electricity` | TWh | 1990–2024 | UNSD Energy Statistics |
+| Transmission losses | derived, see below | % of supply | 1992–2024 | UNSD Energy Statistics |
 
 Two of these are "lower is better", and they span three provenances, which is the point — it
 forces the page to be genuinely indicator-agnostic rather than incidentally so.
@@ -102,6 +103,50 @@ Three config fields exist for these variables, and all three earn their keep her
   for ≥95% of the best-covered year's output — counting countries is the wrong test, because
   most years miss only tiny states while 2019 and 2024 miss giants. Thin years stay on the
   map and simply carry no world figure.
+
+### Derived indicators
+
+Transmission losses are not a single variable: they are `Annual_Loss_Electricity` over total
+**supply**, built from four DCIDs via a `derived` block in the config.
+
+```json
+"derived": {
+  "numerator":   { "dcid": "Annual_Loss_Electricity" },
+  "denominator": [
+    { "dcid": "Annual_Generation_Electricity", "sign":  1 },
+    { "dcid": "Annual_Imports_Electricity",    "sign":  1, "optional": true },
+    { "dcid": "Annual_Exports_Electricity",    "sign": -1, "optional": true }
+  ],
+  "multiply": 100
+}
+```
+
+Supply, not generation, is the denominator that matters. Dividing by domestic generation
+alone gives Jersey 92.6% and Andorra 59.5%, because they import most of their power; against
+supply they are 5.9% and 11.0%. Germany lands at 4.8%, the USA 4.5% and India 15.4%, all
+matching published figures.
+
+Two rules keep the arithmetic honest, and both were added because the data broke without them:
+
+- **Optional terms are zero only where the country never reports them.** A country with no
+  trade record anywhere has an isolated grid, so zero is right. But Palestine and Djibouti
+  import nearly all their power and have *gaps* in their import series — read as zero, they
+  came out above 100% loss. A missing value is now treated as a gap wherever that term is
+  material for the country (median contribution above 5% in the years it is reported), and
+  the country-year is dropped. Restricting it to material terms matters: treating every
+  missing optional value as a gap discarded about a thousand country-years, because trade
+  reporting simply thins out in older years. `plausibleMax` is the backstop for whatever
+  slips through — a share of supply above 100% is bad input by definition.
+- **`aggregate: "ratio"`** makes the world figure total losses over total supply, not the
+  mean of country percentages, which would let a tiny grid weigh as much as India's. It is
+  gated on coverage like a sum, but at 90% rather than 95%: a missing tenth of supply shifts
+  an average slightly where it would cut a total by a tenth.
+
+The quantile snapping also had to get finer here. Losses sit mostly between 4% and 25%, and
+the original 1/2/2.5/5 ladder collapsed four of the six quantiles onto the same value; the
+old fallback then padded by doubling, inventing breaks above the data's own maximum and
+leaving empty bins at the top of the ramp. Cuts now fall back to the quantiles themselves
+when snapping will not fit, and never exceed the data.
 
 Note that a choropleth of an absolute total is dominated by large countries by construction;
 the quantile bins stay evenly filled, but the big generators are also the big landmasses.

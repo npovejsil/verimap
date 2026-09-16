@@ -97,34 +97,142 @@ const quantile = (sorted, p) => {
   return lo === hi ? sorted[lo] : sorted[lo] + (sorted[hi] - sorted[lo]) * (i - lo);
 };
 
-/* snap to 1 / 2 / 2.5 / 5 x 10^k so legend ticks read cleanly */
+/* Snap to a round number so legend ticks read cleanly. The ladder has to be fine enough
+   for narrow distributions: transmission losses sit mostly between 4% and 25%, and a
+   coarse 1/2/2.5/5 ladder collapses four of the six quantiles onto the same value. */
+const LADDER = [1, 1.5, 2, 2.5, 3, 4, 5, 6, 8, 10];
 function nice(x) {
   if (!(x > 0)) return 0;
   const k = Math.pow(10, Math.floor(Math.log10(x))), n = x / k;
-  const m = n <= 1 ? 1 : n <= 2 ? 2 : n <= 2.5 ? 2.5 : n <= 5 ? 5 : 10;
-  return +(m * k).toPrecision(4);
+  return +((LADDER.find((m) => n <= m) ?? 10) * k).toPrecision(4);
 }
 
 function computeCuts(values) {
   const sorted = [...values].sort((a, b) => a - b);
-  const cuts = [];
-  for (let i = 1; i <= 6; i++) {
-    const c = nice(quantile(sorted, i / 7));
-    if (!cuts.length || c > cuts[cuts.length - 1]) cuts.push(c);
+  const max = sorted[sorted.length - 1];
+  const raw = [];
+  for (let i = 1; i <= 6; i++) raw.push(quantile(sorted, i / 7));
+
+  // Prefer snapped cuts, but only if they stay strictly increasing and inside the data.
+  const snapped = raw.map(nice);
+  const usable = snapped.every((v, i) => v > 0 && (i === 0 || v > snapped[i - 1]) && v < max);
+  if (usable) return snapped;
+
+  // Otherwise keep the quantiles themselves, rounded just enough to stay distinct.
+  // Padding past the last cut (the old fallback) invented breaks above the data's own
+  // maximum, which put empty bins at the top of the ramp.
+  const out = [];
+  for (const q of raw) {
+    let v = +q.toPrecision(2);
+    while (out.length && v <= out[out.length - 1]) v = +(v + Math.max(0.1, v * 0.05)).toPrecision(3);
+    out.push(v);
   }
-  // pad if snapping collapsed duplicates, so the ramp always has 6 breaks
-  while (cuts.length < 6) cuts.push(nice((cuts[cuts.length - 1] || 1) * 2));
-  return cuts;
+  return out;
+}
+
+/* Build one series from several variables: numerator / sum(signed denominator terms).
+   Transmission losses are only meaningful against total SUPPLY, not domestic generation —
+   dividing by generation alone gives Jersey 92.6% and Andorra 59.5%, because they import
+   most of their power. An optional term defaults to 0 only for countries that never report
+   it at all (no trade record anywhere means an isolated grid); for a country that reports
+   it in other years a missing year is a data GAP, and the country-year is dropped. Palestine
+   and Djibouti both import most of their power and have gaps — reading those as zero trade
+   put them above 100% loss. A missing required term always drops the country-year. Returns the component series too, so the world reference
+   can be a ratio of totals rather than a mean of ratios. */
+async function buildDerived(ind) {
+  const opts = { requireUnit: ind.requireUnit ?? null, scale: 1 };
+  const terms = [ind.derived.numerator, ...ind.derived.denominator];
+  const loaded = {};
+  let provenanceUrl = null, facetId = null;
+  for (const t of terms) {
+    if (loaded[t.dcid]) continue;
+    const o = await observe(t.dcid, { expression: COUNTRIES });
+    const r = toSeries(o.byEntity, `${ind.slug}:${t.dcid}`, o.facets, opts);
+    loaded[t.dcid] = r.series;
+    provenanceUrl ??= o.facets?.[r.facetId]?.provenanceUrl ?? null;
+    facetId ??= r.facetId;
+    console.error(`  ${t.dcid}: ${Object.keys(r.series).length} countries`);
+  }
+
+  const num = loaded[ind.derived.numerator.dcid];
+  const mult = ind.derived.multiply ?? 1;
+  // Which countries ever report each optional term, so a gap can be told from a true zero.
+  // Treating every missing optional value as a gap drops ~1000 country-years, because
+  // trade reporting simply thins out in older years. Only treat it as a gap where the term
+  // is MATERIAL for that country: take the median share it contributes in the years it is
+  // reported, and if that is small, assuming zero is harmless. Palestine and Djibouti import
+  // nearly all their power, so their missing years are real gaps; a country with negligible
+  // trade keeps its older years.
+  const MATERIAL = 0.05;
+  const required = ind.derived.denominator.filter((t) => !t.optional);
+  const reports = {};
+  for (const t of ind.derived.denominator) {
+    if (!t.optional) continue;
+    const material = new Set();
+    for (const [iso, byYear] of Object.entries(loaded[t.dcid] ?? {})) {
+      const shares = [];
+      for (const [y, v] of Object.entries(byYear)) {
+        let base = 0;
+        for (const r of required) base += loaded[r.dcid]?.[iso]?.[y] ?? 0;
+        if (base > 0) shares.push(Math.abs(v) / base);
+      }
+      if (shares.length) {
+        shares.sort((a, b) => a - b);
+        if (shares[Math.floor(shares.length / 2)] > MATERIAL) material.add(iso);
+      }
+    }
+    reports[t.dcid] = material;
+    console.error(`  ${t.dcid}: material for ${material.size} countries`);
+  }
+  const series = {}, parts = {};
+  let skippedRequired = 0, nonPositive = 0, gaps = 0;
+  const implausible = [];
+  for (const [iso, byYear] of Object.entries(num)) {
+    for (const [y, nv] of Object.entries(byYear)) {
+      let den = 0, ok = true;
+      let gap = false;
+      for (const t of ind.derived.denominator) {
+        const v = loaded[t.dcid]?.[iso]?.[y];
+        if (v == null) {
+          if (!t.optional) { ok = false; break; }
+          if (reports[t.dcid]?.has(iso)) { gap = true; break; }  // material for this country: a gap, not a zero
+          continue;
+        }
+        den += (t.sign ?? 1) * v;
+      }
+      if (!ok) { skippedRequired++; continue; }
+      if (gap) { gaps++; continue; }
+      if (!(den > 0)) { nonPositive++; continue; }
+      const val = +((mult * nv) / den).toPrecision(6);
+      // Backstop: a share of supply cannot exceed 100%, so anything above it is bad input.
+      if (ind.plausibleMax != null && val > ind.plausibleMax) {
+        implausible.push(`${iso} ${y} (${val.toFixed(0)})`); continue;
+      }
+      (series[iso] ??= {})[y] = val;
+      (parts[iso] ??= {})[y] = { n: nv, d: den };
+    }
+  }
+  if (skippedRequired) warn(`${ind.slug}: ${skippedRequired} country-years lack a required denominator term`);
+  if (nonPositive) warn(`${ind.slug}: ${nonPositive} country-years had a non-positive denominator`);
+  if (gaps) warn(`${ind.slug}: ${gaps} country-years dropped for a gap in an optional term the country reports elsewhere`);
+  if (implausible.length) warn(`${ind.slug}: dropped ${implausible.length} over plausibleMax=${ind.plausibleMax}: ${implausible.join(", ")}`);
+  return { series, parts, provenanceUrl, facetId };
 }
 
 async function build(ind) {
   console.error(`\n${ind.slug}  (${ind.dcid})`);
 
   const opts = { requireUnit: ind.requireUnit ?? null, scale: ind.scale ?? 1 };
-  const obs = await observe(ind.dcid, { expression: COUNTRIES });
-  const { series, facetId, unit } = toSeries(obs.byEntity, ind.slug, obs.facets, opts);
-  if (opts.scale !== 1) console.error(`  scaled by ${opts.scale} (${unit} -> ${ind.unit.symbol})`);
-  const provenanceUrl = obs.facets?.[facetId]?.provenanceUrl ?? null;
+  let series, parts = null, provenanceUrl, facetId;
+  if (ind.derived) {
+    ({ series, parts, provenanceUrl, facetId } = await buildDerived(ind));
+  } else {
+    const obs = await observe(ind.dcid, { expression: COUNTRIES });
+    let unit;
+    ({ series, facetId, unit } = toSeries(obs.byEntity, ind.slug, obs.facets, opts));
+    if (opts.scale !== 1) console.error(`  scaled by ${opts.scale} (${unit} -> ${ind.unit.symbol})`);
+    provenanceUrl = obs.facets?.[facetId]?.provenanceUrl ?? null;
+  }
   console.error(`  ${Object.keys(series).length} countries`);
 
   const years = yearDomain(series, ind.slug, ind.minYearCoverage ?? MIN_COVERAGE);
@@ -135,7 +243,33 @@ async function build(ind) {
 
   // world reference: reported Earth series, else population-weighted, else median
   let world = {}, worldKind = "reported";
-  const earth = await observe(ind.dcid, { dcids: "Earth" });
+  if (ind.aggregate === "ratio") {
+    // The world figure is total losses over total supply, not the mean of country
+    // percentages — which would let a tiny grid weigh as much as India's. Gated the
+    // same way a sum is: only for years whose reporters carry ~all of the denominator.
+    worldKind = "ratio";
+    const mult = ind.derived?.multiply ?? 1;
+    const counts = years.map((y) => [y, Object.values(parts).filter((b) => b[y]).length]);
+    const ref = counts.reduce((a, b) => (b[1] > a[1] ? b : a))[0];
+    const refTotal = Object.values(parts).reduce((t, b) => t + (b[ref]?.d ?? 0), 0);
+    // A ratio tolerates thinner coverage than a sum: a missing 10% of supply shifts an
+    // average slightly, where it would cut a total by a tenth. So 90% here, 95% for sums.
+    const need = ind.worldMinCoverage ?? 0.9;
+    const thin = [];
+    for (const y of years) {
+      let n = 0, d = 0, covered = 0;
+      for (const b of Object.values(parts)) {
+        if (!b[y]) continue;
+        n += b[y].n; d += b[y].d; covered += b[ref]?.d ?? 0;
+      }
+      const share = refTotal ? covered / refTotal : 0;
+      if (d > 0 && share >= need) world[y] = +((mult * n) / d).toPrecision(6);
+      else if (d > 0) thin.push(`${y} (${(share * 100).toFixed(0)}% of ${ref} supply)`);
+    }
+    if (thin.length) warn(`no world figure for years with thin coverage: ${thin.join(", ")}`);
+  }
+
+  const earth = ind.aggregate === "ratio" ? { byEntity: {}, facets: {} } : await observe(ind.dcid, { dcids: "Earth" });
   const eAll = earth.byEntity?.Earth?.orderedFacets ?? [];
   const ef = (opts.requireUnit
     ? eAll.filter((f) => (earth.facets?.[String(f.facetId)]?.unit ?? null) === opts.requireUnit)
@@ -222,6 +356,9 @@ async function build(ind) {
     stats: { min: sorted[0], max: sorted[sorted.length - 1], p99: quantile(sorted, 0.99), n: sorted.length },
     series, world, worldKind,
     source: { ...ind.source, provenanceUrl, facetId },
+    derivedFrom: ind.derived
+      ? [ind.derived.numerator, ...ind.derived.denominator].map((t) => t.dcid)
+      : null,
     sourceNote: ind.sourceNote ?? null,
     generatedAt: new Date().toISOString().slice(0, 10),
   };

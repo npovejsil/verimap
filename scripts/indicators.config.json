@@ -165,6 +165,56 @@
         "indicatorCode": "Annual_Generation_Electricity"
       },
       "sourceNote": "Reached through the base Data Commons graph rather than the curated undata namespace, so it sits outside the boundary the MCP tools enforce."
+    },
+    {
+      "slug": "transmission-losses",
+      "dcid": "Annual_Loss_Electricity",
+      "variable": "Annual loss of electricity, as a share of total supply",
+      "resolvedVia": "REST /node — base Data Commons variables, outside the undata/* namespace that search_indicators indexes",
+      "title": "Transmission Loss Atlas",
+      "eyebrow": "UNSD Energy Statistics · UN Data Commons",
+      "blurb": "Electricity lost in transmission and distribution, as a share of total supply",
+      "panelTitle": "Losses as a share of supply",
+      "valueNoun": "Lost",
+      "direction": "low",
+      "requireUnit": "KilowattHour",
+      "aggregate": "ratio",
+      "derived": {
+        "numerator": {
+          "dcid": "Annual_Loss_Electricity"
+        },
+        "denominator": [
+          {
+            "dcid": "Annual_Generation_Electricity",
+            "sign": 1
+          },
+          {
+            "dcid": "Annual_Imports_Electricity",
+            "sign": 1,
+            "optional": true
+          },
+          {
+            "dcid": "Annual_Exports_Electricity",
+            "sign": -1,
+            "optional": true
+          }
+        ],
+        "multiply": 100
+      },
+      "unit": {
+        "label": "percent of total electricity supply",
+        "symbol": "%",
+        "suffix": "%",
+        "sup": "%",
+        "decimals": 1
+      },
+      "deltaNoun": "points",
+      "source": {
+        "name": "UN Statistics Division, Energy Statistics Database",
+        "indicatorCode": "Annual_Loss_Electricity / (generation + imports - exports)"
+      },
+      "sourceNote": "Derived: losses divided by total supply, since dividing by domestic generation alone distorts net importers. Reached through the base Data Commons graph rather than the curated undata namespace.",
+      "plausibleMax": 100
     }
   ]
 }
