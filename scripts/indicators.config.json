@@ -1,0 +1,142 @@
+{
+  "_note": "DCIDs in this file were resolved with the un-datacommons MCP search_indicators tool and verified with get_variable_metadata. Do not hand-edit a dcid; re-resolve it. Chrome copy (title/eyebrow/blurb/valueNoun/deltaNoun) is hand-authored.",
+  "resolvedVia": "search_indicators + get_variable_metadata",
+  "resolvedAt": "2026-09-15",
+  "rest": "https://unsd-datacommons.gcp.un-icc.cloud/core/api/v2",
+  "minReportersPerYear": 30,
+  "minYearCoverage": 0.5,
+  "indicators": [
+    {
+      "slug": "renewable-share",
+      "dcid": "undata/sdg/EG_FEC_RNEW",
+      "variable": "Share of renewable energy in the total final energy consumption",
+      "title": "Renewable Share Atlas",
+      "eyebrow": "SDG indicator 7.2.1 · UN Data Commons",
+      "blurb": "Renewable energy as a share of total final energy consumption",
+      "panelTitle": "Share of final energy consumption",
+      "valueNoun": "Share",
+      "direction": "high",
+      "unit": {
+        "label": "percent",
+        "symbol": "%",
+        "suffix": "%",
+        "sup": "%",
+        "decimals": 1
+      },
+      "deltaNoun": "points",
+      "cuts": [
+        5,
+        15,
+        30,
+        45,
+        60,
+        75
+      ],
+      "source": {
+        "name": "UN Statistics Division, SDG Data Portal",
+        "indicatorCode": "EG_FEC_RNEW"
+      }
+    },
+    {
+      "slug": "electricity-access",
+      "dcid": "undata/sdg/EG_ACS_ELEC",
+      "variable": "Proportion of population with access to electricity",
+      "title": "Electricity Access Atlas",
+      "eyebrow": "SDG indicator 7.1.1 · UN Data Commons",
+      "blurb": "Share of the population with access to electricity",
+      "panelTitle": "Population with access",
+      "valueNoun": "Access",
+      "direction": "high",
+      "unit": {
+        "label": "percent",
+        "symbol": "%",
+        "suffix": "%",
+        "sup": "%",
+        "decimals": 1
+      },
+      "deltaNoun": "points",
+      "cuts": [
+        25,
+        50,
+        70,
+        85,
+        95,
+        99
+      ],
+      "source": {
+        "name": "UN Statistics Division, SDG Data Portal",
+        "indicatorCode": "EG_ACS_ELEC"
+      }
+    },
+    {
+      "slug": "energy-intensity",
+      "dcid": "undata/sdg/EG_EGY_PRIM",
+      "variable": "Energy intensity level of primary energy",
+      "title": "Energy Intensity Atlas",
+      "eyebrow": "SDG indicator 7.3.1 · UN Data Commons",
+      "blurb": "Primary energy supplied per unit of economic output",
+      "panelTitle": "Primary energy per unit of GDP",
+      "valueNoun": "Intensity",
+      "direction": "low",
+      "aggregable": false,
+      "unit": {
+        "label": "megajoules per constant 2011 USD PPP",
+        "symbol": "MJ/$",
+        "suffix": " MJ/$",
+        "sup": "",
+        "decimals": 2
+      },
+      "deltaNoun": "MJ/$",
+      "source": {
+        "name": "UN Statistics Division, SDG Data Portal",
+        "indicatorCode": "EG_EGY_PRIM"
+      }
+    },
+    {
+      "slug": "co2-per-capita",
+      "dcid": "undata/undphdro/PHDI_co2_prod",
+      "variable": "Carbon dioxide emissions per capita, production-based",
+      "title": "CO₂ Per Capita Atlas",
+      "eyebrow": "UNDP Human Development Report · UN Data Commons",
+      "blurb": "Production-based carbon dioxide emissions per person",
+      "panelTitle": "Emissions per person",
+      "valueNoun": "Emissions",
+      "direction": "low",
+      "unit": {
+        "label": "tonnes CO₂-equivalent per capita",
+        "symbol": "t/person",
+        "suffix": " t",
+        "sup": "",
+        "decimals": 2
+      },
+      "deltaNoun": "tonnes",
+      "source": {
+        "name": "UNDP Human Development Report Office",
+        "indicatorCode": "PHDI_co2_prod"
+      }
+    },
+    {
+      "slug": "renewable-capacity",
+      "dcid": "undata/sdg/EG_EGY_RNEW",
+      "variable": "Installed renewable electricity-generating capacity",
+      "title": "Renewable Capacity Atlas",
+      "eyebrow": "SDG indicator 7.b.1 · UN Data Commons",
+      "blurb": "Installed renewable electricity-generating capacity per person",
+      "panelTitle": "Installed capacity per person",
+      "valueNoun": "Capacity",
+      "direction": "high",
+      "unit": {
+        "label": "watts per capita",
+        "symbol": "W/person",
+        "suffix": " W",
+        "sup": "",
+        "decimals": 0
+      },
+      "deltaNoun": "watts",
+      "source": {
+        "name": "UN Statistics Division, SDG Data Portal",
+        "indicatorCode": "EG_EGY_RNEW"
+      }
+    }
+  ]
+}

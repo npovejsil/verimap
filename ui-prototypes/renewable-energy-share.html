@@ -1,3 +1,5 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Renewable Share Atlas</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -18,6 +20,9 @@
   --focus:#eb6834;
   --s0:#cde2fb; --s1:#9ec5f4; --s2:#6da7ec; --s3:#3987e5;
   --s4:#256abf; --s5:#184f95; --s6:#0d366b;
+  --w0:#fde8cd; --w1:#fbcb93; --w2:#f5ab61; --w3:#ec863d;
+  --w4:#d46420; --w5:#ab4615; --w6:#792c0d;
+  --good:#1a7f4b; --bad:#c2410c;
   --sans:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,"SF Mono",Menlo,monospace;
 }
@@ -35,6 +40,7 @@
     --nodata:#232930;
     --accent:#3987e5;
     --focus:#eb6834;
+    --good:#4ade80; --bad:#fb923c;
   }
 }
 :root[data-theme="dark"]{
@@ -50,6 +56,7 @@
   --nodata:#232930;
   --accent:#3987e5;
   --focus:#eb6834;
+  --good:#4ade80; --bad:#fb923c;
 }
 
 *{box-sizing:border-box}
@@ -115,6 +122,15 @@ h1{
   margin-top:4px; display:block; text-align:left;
 }
 .legend-unit{font-family:var(--mono); font-size:10px; color:var(--muted); letter-spacing:.06em}
+.legend-dir{font-size:10px; color:var(--muted); letter-spacing:.04em; white-space:nowrap}
+.indpick{
+  margin-top:10px; font-family:var(--sans); font-size:13px; font-weight:500;
+  color:var(--ink); background:var(--surface); border:1px solid var(--rule);
+  border-radius:6px; padding:6px 10px; max-width:100%;
+}
+.indpick:focus-visible{outline:2px solid var(--focus); outline-offset:2px}
+.hero-kind{margin:2px 0 0; font-size:10px; color:var(--muted); letter-spacing:.03em}
+.good{color:var(--good)} .bad{color:var(--bad)}
 .nodata-key{display:flex; align-items:center; gap:6px; font-size:11px; color:var(--muted)}
 .nodata-chip{width:14px; height:11px; border-radius:1px; background:var(--nodata); border:1px solid var(--rule)}
 
@@ -238,15 +254,17 @@ footer a{color:var(--ink-2)}
 <div class="wrap">
   <header class="masthead">
     <div>
-      <p class="eyebrow">SDG indicator 7.2.1 &middot; UN Data Commons</p>
-      <h1>Renewable Share Atlas</h1>
-      <p class="sub">Renewable energy as a share of total final energy consumption, by country, 2010&ndash;2023.</p>
+      <p class="eyebrow" id="eyebrow">SDG indicator 7.2.1 &middot; UN Data Commons</p>
+      <h1 id="h1">Renewable Share Atlas</h1>
+      <p class="sub" id="sub">Renewable energy as a share of total final energy consumption, by country, 2010&ndash;2023.</p>
+      <select class="indpick" id="ind" aria-label="Indicator"></select>
     </div>
     <div class="hero">
       <div class="hero-fig" id="heroFig">18.0<sup>%</sup></div>
       <dl class="hero-meta">
         <dt>World, <span id="heroYear">2023</span></dt>
         <dd id="heroDelta">UN world aggregate</dd>
+        <dd class="hero-kind" id="heroKind"></dd>
       </dl>
     </div>
   </header>
@@ -254,11 +272,12 @@ footer a{color:var(--ink-2)}
   <div class="grid">
     <section class="panel" aria-label="World map">
       <div class="panel-head">
-        <h2 class="panel-title">Share of final energy consumption</h2>
+        <h2 class="panel-title" id="panelTitle">Share of final energy consumption</h2>
         <div class="legend">
-          <span class="legend-unit">%</span>
+          <span class="legend-unit" id="legendUnit">%</span>
           <div class="ramp" id="ramp"></div>
           <span class="nodata-key"><span class="nodata-chip"></span>no data</span>
+          <span class="legend-dir" id="legendDir"></span>
         </div>
       </div>
 
@@ -275,7 +294,7 @@ footer a{color:var(--ink-2)}
             <span class="scrub-year" id="yearOut">2023</span>
           </div>
           <input type="range" id="year" min="0" max="13" value="13" step="1" aria-label="Reporting year">
-          <div class="ticks"><span>2010</span><span>2023</span></div>
+          <div class="ticks"><span id="tickLo">2010</span><span id="tickHi">2023</span></div>
         </div>
       </div>
     </section>
@@ -287,14 +306,14 @@ footer a{color:var(--ink-2)}
           <h3 class="detail-name" id="dName">World</h3>
           <span class="detail-code" id="dCode">UN aggregate</span>
           <dl class="detail-stats">
-            <div class="stat"><dt>Share</dt><dd id="dVal">18.0%</dd></div>
+            <div class="stat"><dt id="valLabel">Share</dt><dd id="dVal">18.0%</dd></div>
             <div class="stat"><dt>Rank</dt><dd id="dRank">&mdash;</dd></div>
-            <div class="stat"><dt>vs 2010</dt><dd id="dTrend">+3.0</dd></div>
+            <div class="stat"><dt id="baseLabel">vs 2010</dt><dd id="dTrend">+3.0</dd></div>
           </dl>
           <div class="spark"><svg id="spark" viewBox="0 0 340 120" role="img" aria-label="Trend 2010 to 2023"></svg></div>
           <div class="spark-key">
             <span><i class="kdot" style="background:var(--accent)"></i><span id="kName">World</span></span>
-            <span><i class="kdot" style="background:var(--muted)"></i>World reference</span>
+            <span><i class="kdot" style="background:var(--muted)"></i><span id="refKey">World reference</span></span>
           </div>
           <p class="hint">Select any country on the map or in the table below.</p>
         </div>
@@ -312,7 +331,7 @@ footer a{color:var(--ink-2)}
         </div>
         <div class="tablescroll">
           <table>
-            <thead><tr><th>#</th><th>Country</th><th class="num">Share</th></tr></thead>
+            <thead><tr><th>#</th><th>Country</th><th class="num" id="colVal">Share</th></tr></thead>
             <tbody id="rows"></tbody>
           </table>
           <p class="empty" id="empty" hidden>No country matches that search.</p>
@@ -322,34 +341,66 @@ footer a{color:var(--ink-2)}
   </div>
 
   <footer>
-    <p>Small island states and territories without geometry in the 110m basemap &mdash; Singapore, Malta, Maldives, Mauritius and 56 others &mdash; carry data but cannot be drawn at this scale. They are marked <span class="offmap">off map</span> in the table.</p>
-    <p class="src">Source: United Nations Statistics Division, SDG Data Portal, via UN Data Commons. Indicator EG_FEC_RNEW, annual, percent.</p>
+    <p id="offmapNote"></p>
+    <p class="src" id="srcNote"></p>
   </footer>
 </div>
 
-<script src="../data/renewable-share.js"></script>
+<script src="../data/world-geo.js"></script>
+<script src="../data/indicators/renewable-share.js"></script>
+<script src="../data/indicators/electricity-access.js"></script>
+<script src="../data/indicators/energy-intensity.js"></script>
+<script src="../data/indicators/co2-per-capita.js"></script>
+<script src="../data/indicators/renewable-capacity.js"></script>
 <script>
 (function(){
   "use strict";
-  var D = window.UNDATA;
-  var YEARS = D.years, RAMP = ["--s0","--s1","--s2","--s3","--s4","--s5","--s6"];
-  var CUTS = [5,15,30,45,60,75];
+  var IND  = window.UNDATA || {};
+  var GEO   = window.UNGEO;
+  var NAMES = GEO.names;
+  var COOL = ["--s0","--s1","--s2","--s3","--s4","--s5","--s6"];
+  var WARM = ["--w0","--w1","--w2","--w3","--w4","--w5","--w6"];
+
+  // Menu order, filtered to what actually loaded, so a missing data file
+  // shortens the picker instead of blanking the page.
+  var ORDER = ["renewable-share","electricity-access","energy-intensity",
+               "co2-per-capita","renewable-capacity"].filter(function(k){ return IND[k]; });
+  if(!ORDER.length) throw new Error("no indicator data loaded");
+
+  // Rebound by setIndicator(); every read below goes through these.
+  var D, YEARS, CUTS, RAMP, ids;
+
   var css = getComputedStyle(document.documentElement);
   function step(i){ return css.getPropertyValue(RAMP[i]).trim(); }
   function binOf(v){ for(var i=0;i<CUTS.length;i++){ if(v<CUTS[i]) return i; } return 6; }
   function colorOf(v){ return v==null ? css.getPropertyValue("--nodata").trim() : step(binOf(v)); }
-  function fmt(v){ return v==null ? "—" : v.toFixed(1)+"%"; }
+  function fmt(v){ return v==null ? "—" : v.toFixed(D.unit.decimals)+D.unit.suffix; }
+  function signed(d){ return (d>=0?"+":"−")+Math.abs(d).toFixed(D.unit.decimals); }
+  function fmtDelta(d){ return signed(d)+" "+D.deltaNoun; }
+  // A lower value is an improvement for intensity/emissions indicators.
+  function improved(d){ return D.direction==="low" ? d<0 : d>0; }
+  // Round up to 1/2/2.5/5 x 10^k so the sparkline axis reads cleanly at any unit.
+  function niceCeil(x){
+    if(!(x>0)) return 1;
+    var k = Math.pow(10, Math.floor(Math.log10(x))), r = x/k;
+    var m = r<=1 ? 1 : r<=2 ? 2 : r<=2.5 ? 2.5 : r<=5 ? 5 : 10;
+    return +(m*k).toPrecision(4);
+  }
 
-  var year = YEARS[YEARS.length-1];
-  var sel = null; // null = World
+  var year = null;  // set by clampYear on the first setIndicator
+  var sel = null;   // null = World
 
-  /* ---------- legend ---------- */
   var ramp = document.getElementById("ramp");
-  var edges = [0].concat(CUTS);
-  ramp.innerHTML = edges.map(function(e,i){
-    return '<span class="ramp-cell"><span class="ramp-swatch" style="background:var('+RAMP[i]+')"></span>'+
-           '<span class="ramp-tick">'+e+'</span></span>';
-  }).join("");
+  function legend(){
+    var edges = [0].concat(CUTS);
+    ramp.innerHTML = edges.map(function(e,i){
+      return '<span class="ramp-cell"><span class="ramp-swatch" style="background:var('+RAMP[i]+')"></span>'+
+             '<span class="ramp-tick">'+e+'</span></span>';
+    }).join("");
+    document.getElementById("legendUnit").textContent = D.unit.symbol;
+    document.getElementById("legendDir").textContent =
+      D.direction==="low" ? "lower is better" : "higher is better";
+  }
 
   /* ---------- projection: Natural Earth 1 ---------- */
   function project(lon, lat){
@@ -361,7 +412,7 @@ footer a{color:var(--ink-2)}
     ];
   }
 
-  var feats = D.geo.features;
+  var feats = GEO.features;
 
   // A ring that straddles the antimeridian arrives with longitudes that jump
   // +/-360; left as-is it draws a straight line clean across the map. Unwrap it
@@ -429,17 +480,22 @@ footer a{color:var(--ink-2)}
     el.setAttribute("d", featPath(f));
     el.setAttribute("tabindex","-1");
     el.dataset.id = f.id;
-    var nm = D.names[f.id] || f.properties.name;
+    var nm = NAMES[f.id] || f.properties.name;
     el.appendChild(document.createElementNS("http://www.w3.org/2000/svg","title"))
       .textContent = nm;
-    if(D.series[f.id]) paths[f.id] = el;
+    paths[f.id] = el;
     frag.appendChild(el);
   });
   svg.appendChild(frag);
 
   /* ---------- map paint ---------- */
+  function refAt(y){
+    var v = D.world[String(y)];
+    return v==null ? null : v;
+  }
   function valAt(id, y){
-    var s = id===null ? D.world : D.series[id];
+    if(id===null) return refAt(y);
+    var s = D.series[id];
     if(!s) return null;
     var v = s[String(y)];
     return v==null ? null : v;
@@ -457,11 +513,13 @@ footer a{color:var(--ink-2)}
   }
 
   /* ---------- ranking ---------- */
-  var ids = Object.keys(D.series);
   var drawable = {}; feats.forEach(function(f){ drawable[f.id]=1; });
+  // Rank 1 is always the best performer, which for a "low is better"
+  // indicator means the smallest value.
   function ranked(y){
+    var dir = D.direction==="low" ? 1 : -1;
     var list = ids.filter(function(id){ return valAt(id,y)!=null; });
-    list.sort(function(a,b){ return valAt(b,y)-valAt(a,y); });
+    list.sort(function(a,b){ return dir*(valAt(a,y)-valAt(b,y)); });
     return list;
   }
   var rankCache = {}, orderCache = {};
@@ -475,24 +533,35 @@ footer a{color:var(--ink-2)}
   }
 
   /* ---------- hero ---------- */
+  function worldLabel(){
+    if(D.worldKind==="popWeighted") return "Estimated world average (population-weighted)";
+    if(D.worldKind==="median") return "Median of "+(orderCache[year]||ranked(year)).length+" reporting countries";
+    return "UN world aggregate";
+  }
   function hero(){
-    var v = D.world[String(year)], base = D.world[String(YEARS[0])];
-    document.getElementById("heroFig").innerHTML = v.toFixed(1)+'<sup>%</sup>';
+    var v = refAt(year), base = refAt(YEARS[0]);
+    var fig = document.getElementById("heroFig");
+    fig.innerHTML = v==null ? "—"
+      : v.toFixed(D.unit.decimals) + (D.unit.sup ? '<sup>'+D.unit.sup+'</sup>' : '');
     document.getElementById("heroYear").textContent = year;
-    var d = v-base;
-    document.getElementById("heroDelta").textContent =
-      year===YEARS[0] ? "UN world aggregate" :
-      (d>=0?"+":"−")+Math.abs(d).toFixed(1)+" points since 2010";
+    var dd = document.getElementById("heroDelta");
+    if(year===YEARS[0] || v==null || base==null){
+      dd.textContent = "\u2014"; dd.className = "";
+    } else {
+      var d = v-base;
+      dd.textContent = fmtDelta(d)+" since "+YEARS[0];
+      dd.className = d===0 ? "" : (improved(d) ? "good" : "bad");
+    }
+    document.getElementById("heroKind").textContent = worldLabel();
   }
 
   /* ---------- detail + sparkline ---------- */
   function sparkline(id){
-    var s = id===null ? D.world : D.series[id];
-    var pts = YEARS.map(function(y){ return [y, s[String(y)]]; });
-    var wpts = YEARS.map(function(y){ return [y, D.world[String(y)]]; });
+    var pts = YEARS.map(function(y){ return [y, valAt(id,y)]; });
+    var wpts = YEARS.map(function(y){ return [y, refAt(y)]; });
     var all = pts.concat(wpts).map(function(p){ return p[1]; })
                  .filter(function(v){ return v!=null; });
-    var top = Math.max.apply(null, all), hi = Math.ceil(top/10)*10 || 10;
+    var hi = niceCeil(all.length ? Math.max.apply(null, all) : 1);
     var X0=8, X1=306, Y0=12, Y1=94;
     function px(y){ return X0 + (X1-X0)*(y-YEARS[0])/(YEARS[YEARS.length-1]-YEARS[0]); }
     function py(v){ return Y1 - (Y1-Y0)*(v/hi); }
@@ -512,19 +581,19 @@ footer a{color:var(--ink-2)}
     var out =
       '<line x1="'+X0+'" y1="'+py(hi)+'" x2="'+X1+'" y2="'+py(hi)+'" stroke="'+grid+'" stroke-width="1"/>'+
       '<line x1="'+X0+'" y1="'+Y1+'" x2="'+X1+'" y2="'+Y1+'" stroke="'+grid+'" stroke-width="1"/>'+
-      '<text x="'+X1+'" y="'+(py(hi)-5)+'" fill="'+muted+'" font-family="IBM Plex Mono, monospace" font-size="10" text-anchor="end">'+hi+'%</text>'+
+      '<text x="'+X1+'" y="'+(py(hi)-5)+'" fill="'+muted+'" font-family="IBM Plex Mono, monospace" font-size="10" text-anchor="end">'+(hi+D.unit.suffix)+'</text>'+
       '<text x="'+X0+'" y="'+(Y1+16)+'" fill="'+muted+'" font-family="IBM Plex Mono, monospace" font-size="10">'+YEARS[0]+'</text>'+
       '<text x="'+X1+'" y="'+(Y1+16)+'" fill="'+muted+'" font-family="IBM Plex Mono, monospace" font-size="10" text-anchor="end">'+YEARS[YEARS.length-1]+'</text>'+
       '<path d="'+line(wpts)+'" fill="none" stroke="'+muted+'" stroke-width="1.5" stroke-dasharray="3 3" stroke-linejoin="round"/>';
     if(id!==null) out += '<path d="'+line(pts)+'" fill="none" stroke="'+accent+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
     var cur = valAt(id, year);
     if(cur!=null) out += '<circle cx="'+px(year).toFixed(1)+'" cy="'+py(cur).toFixed(1)+'" r="4" fill="'+(id===null?muted:accent)+'" stroke="'+css.getPropertyValue("--surface").trim()+'" stroke-width="2"/>';
-    if(last && id!==null) out += '<text x="'+(px(last[0])+8)+'" y="'+(py(last[1])+4)+'" fill="'+accent+'" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600">'+last[1].toFixed(1)+'</text>';
+    if(last && id!==null) out += '<text x="'+(px(last[0])+8)+'" y="'+(py(last[1])+4)+'" fill="'+accent+'" font-family="IBM Plex Mono, monospace" font-size="11" font-weight="600">'+last[1].toFixed(D.unit.decimals)+'</text>';
     document.getElementById("spark").innerHTML = out;
   }
 
   function detail(){
-    var id = sel, nm = id===null ? "World" : (D.names[id]||id);
+    var id = sel, nm = id===null ? "World" : (NAMES[id]||id);
     document.getElementById("dName").textContent = nm;
     document.getElementById("dCode").textContent = id===null ? "UN aggregate" : id;
     document.getElementById("kName").textContent = nm;
@@ -534,9 +603,12 @@ footer a{color:var(--ink-2)}
     document.getElementById("dRank").textContent =
       r ? r+"/"+orderCache[year].length : "—";
     var base = valAt(id, YEARS[0]);
-    document.getElementById("dTrend").textContent =
-      (v==null||base==null) ? "—" :
-      (v-base>=0?"+":"−")+Math.abs(v-base).toFixed(1);
+    var tr = document.getElementById("dTrend");
+    if(v==null || base==null){ tr.textContent = "—"; tr.className = ""; }
+    else {
+      tr.textContent = signed(v-base);
+      tr.className = (v-base)===0 ? "" : (improved(v-base) ? "good" : "bad");
+    }
     sparkline(id);
   }
 
@@ -551,14 +623,14 @@ footer a{color:var(--ink-2)}
     if(mode==="asc") order.reverse();
     if(mode==="az"){
       order = ids.slice().sort(function(a,b){
-        return (D.names[a]||a).localeCompare(D.names[b]||b);
+        return (NAMES[a]||a).localeCompare(NAMES[b]||b);
       });
       missing = [];
     }
     var list = mode==="az" ? order : order.concat(missing);
     var term = q.value.trim().toLowerCase();
     if(term) list = list.filter(function(id){
-      return (D.names[id]||id).toLowerCase().indexOf(term) > -1 ||
+      return (NAMES[id]||id).toLowerCase().indexOf(term) > -1 ||
              id.toLowerCase().indexOf(term) > -1;
     });
     var rk = rankCache[year];
@@ -568,7 +640,7 @@ footer a{color:var(--ink-2)}
         (id===sel?' aria-selected="true"':'')+'>'+
         '<td class="rank">'+(rk[id]||"—")+'</td>'+
         '<td><span class="swatch" style="background:'+colorOf(v)+'"></span>'+
-        (D.names[id]||id)+
+        (NAMES[id]||id)+
         (drawable[id]?'':'<span class="offmap">off map</span>')+'</td>'+
         '<td class="val">'+fmt(v)+'</td></tr>';
     }).join("");
@@ -580,7 +652,7 @@ footer a{color:var(--ink-2)}
     sel = id;
     Object.keys(paths).forEach(function(k){ paths[k].classList.toggle("sel", k===id); });
     svg.querySelectorAll("path.sel").forEach(function(p){ p.parentNode.appendChild(p); });
-    detail(); table();
+    detail(); table(); writeHash();
   }
 
   /* ---------- tooltip ---------- */
@@ -588,7 +660,7 @@ footer a{color:var(--ink-2)}
   function showTip(e, id){
     var v = valAt(id, year);
     tip.innerHTML = '<span class="tv">'+fmt(v)+'</span> <span class="tn">'+
-      (D.names[id]||id)+" · "+year+'</span>';
+      (NAMES[id]||id)+" · "+year+'</span>';
     var r = stage.getBoundingClientRect();
     tip.style.left = (e.clientX-r.left)+"px";
     tip.style.top  = (e.clientY-r.top-10)+"px";
@@ -619,12 +691,27 @@ footer a{color:var(--ink-2)}
 
   /* ---------- year ---------- */
   var slider = document.getElementById("year");
-  slider.max = String(YEARS.length-1);
-  slider.value = String(YEARS.length-1);
+  // Indicators cover different spans (1990-2024 vs 2010-2023), so keep the
+  // selected year across a switch by clamping it into the new domain.
+  function clampYear(y, YS){
+    if(y==null) return YS[YS.length-1];
+    var i = YS.indexOf(String(y));
+    if(i>=0) return YS[i];
+    var best = 0, bd = Infinity;
+    YS.forEach(function(v,k){ var d = Math.abs(+v - +y); if(d<bd){ bd=d; best=k; } });
+    return YS[best];
+  }
+  function rebuildScrub(){
+    slider.max = String(YEARS.length-1);
+    slider.value = String(YEARS.indexOf(year));
+    document.getElementById("yearOut").textContent = year;
+    document.getElementById("tickLo").textContent = YEARS[0];
+    document.getElementById("tickHi").textContent = YEARS[YEARS.length-1];
+  }
   function setYear(i){
     year = YEARS[i];
     document.getElementById("yearOut").textContent = year;
-    paint(); hero(); detail(); table();
+    paint(); hero(); detail(); table(); writeHash();
   }
   slider.addEventListener("input", function(){ stop(); setYear(+slider.value); });
 
@@ -646,12 +733,99 @@ footer a{color:var(--ink-2)}
 
   /* ---------- theme re-paint ---------- */
   var mq = window.matchMedia("(prefers-color-scheme: dark)");
-  function refresh(){ css = getComputedStyle(document.documentElement); paint(); detail(); table(); }
+  function refresh(){ css = getComputedStyle(document.documentElement); legend(); paint(); detail(); table(); }
   if(mq.addEventListener) mq.addEventListener("change", refresh);
   new MutationObserver(refresh).observe(document.documentElement,
     {attributes:true, attributeFilter:["data-theme"]});
 
+  /* ---------- indicator chrome ---------- */
+  function text(id, v){ document.getElementById(id).textContent = v; }
+  function chrome(){
+    var span = YEARS[0]+"\u2013"+YEARS[YEARS.length-1];
+    document.title = D.title + " · UN Data Commons";
+    text("eyebrow", D.eyebrow);
+    text("h1", D.title);
+    text("sub", D.blurb + ", by country, " + span + ".");
+    text("panelTitle", D.panelTitle);
+    text("valLabel", D.valueNoun);
+    text("baseLabel", "vs " + YEARS[0]);
+    text("colVal", D.valueNoun);
+    text("refKey", D.worldKind==="reported" ? "World aggregate"
+                 : D.worldKind==="median" ? "Median country" : "World average (est.)");
+    svg.setAttribute("aria-label", "Choropleth of " + D.variable + " by country");
+    document.getElementById("spark").setAttribute("aria-label", "Trend " + span);
+    // "Highest first" would read as a leaderboard of the worst performers
+    // on a low-is-better indicator, so label by rank instead of magnitude.
+    sortSel.options[0].textContent = "Best first";
+    sortSel.options[1].textContent = "Worst first";
+
+    var src = document.getElementById("srcNote");
+    var name = D.source.provenanceUrl
+      ? '<a href="'+D.source.provenanceUrl+'">'+D.source.name+'</a>'
+      : D.source.name;
+    src.innerHTML = "Source: " + name + ", via UN Data Commons. Indicator " +
+      D.source.indicatorCode + ", annual, " + D.unit.label + ".";
+  }
+
+  // Which countries carry data but have no geometry in the 110m basemap. The
+  // set differs per indicator, so this is recomputed rather than hardcoded.
+  function offmapNote(){
+    var el = document.getElementById("offmapNote");
+    var off = ids.filter(function(id){ return !drawable[id]; });
+    if(!off.length){ el.hidden = true; return; }
+    el.hidden = false;
+    var top = off.slice().sort(function(a,b){
+      var x = valAt(b,year), y2 = valAt(a,year);
+      return (x==null?-Infinity:x) - (y2==null?-Infinity:y2);
+    }).slice(0,4).map(function(id){ return NAMES[id]||id; });
+    var rest = off.length - top.length;
+    el.innerHTML = "Small island states and territories without geometry in the 110m " +
+      "basemap \u2014 " + top.join(", ") + (rest>0 ? " and "+rest+" others" : "") +
+      " \u2014 carry data but cannot be drawn at this scale. They are marked " +
+      '<span class="offmap">off map</span> in the table.';
+  }
+
+  /* ---------- indicator switch ---------- */
+  var picker = document.getElementById("ind");
+  picker.innerHTML = ORDER.map(function(k){
+    return '<option value="'+k+'">'+IND[k].title+'</option>';
+  }).join("");
+
+  function setIndicator(slug){
+    stop();                                   // never leave a play timer running
+    D = IND[slug];
+    YEARS = D.years; CUTS = D.cuts; ids = Object.keys(D.series);
+    RAMP = D.direction==="low" ? WARM : COOL;
+    rankCache = {}; orderCache = {};          // both are keyed by year only
+    year = clampYear(year, YEARS);
+    picker.value = slug;
+    rebuildScrub(); chrome(); legend(); offmapNote();
+    paint(); hero(); detail(); table(); writeHash();
+  }
+  picker.addEventListener("change", function(){ setIndicator(picker.value); });
+
+  /* ---------- shareable state in the URL ---------- */
+  var booted = false;
+  function writeHash(){
+    if(!booted) return;
+    try{
+      history.replaceState(null, "", "#" + D.slug + "&y=" + year + (sel ? "&c="+sel : ""));
+    }catch(e){ /* file:// disallows replaceState; the page still works */ }
+  }
+  function readHash(){
+    var m = /^#([a-z0-9-]+)(?:&y=(\d{4}))?(?:&c=([A-Za-z]{3}))?/.exec(location.hash||"");
+    if(!m) return null;
+    return { slug:m[1], year:m[2]||null, c:m[3] ? m[3].toUpperCase() : null };
+  }
+
   /* ---------- boot ---------- */
-  paint(); hero(); detail(); table();
+  var h = readHash();
+  var start = (h && ORDER.indexOf(h.slug) > -1) ? h.slug : ORDER[0];
+  if(h && h.year) year = h.year;
+  if(h && h.c) sel = h.c;
+  setIndicator(start);
+  if(sel) select(sel);        // applies the map highlight for a deep link
+  booted = true;
+  writeHash();
 })();
 </script>
