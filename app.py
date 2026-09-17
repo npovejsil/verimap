@@ -9,6 +9,8 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
+from analytics.archetypes import compute_archetypes
+from analytics.convergence import compute_convergence
 from analytics.coverage import compute_coverage
 from analytics.gap_scoring import priority_score, unserved_population
 from analytics.trends import fit_trends_excluding_saturated
@@ -27,6 +29,7 @@ from views.bivariate import render_bivariate
 from views.choropleth import render_choropleth
 from views.compatibility import render_compatibility_panel
 from views.coverage_panel import render_coverage_panel
+from views.insights_panel import render_archetypes, render_convergence
 from views.priority_table import render_priority_table
 from views.trend_panel import render_trend_panel
 
@@ -141,6 +144,7 @@ def main() -> None:
     if indicator.denominator and indicator.denominator in catalog.indicators:
         tab_labels.append("Priority")
     tab_labels.append("Coverage")
+    tab_labels.append("Insights")
     tabs = st.tabs(tab_labels)
     tab_map = dict(zip(tab_labels, tabs))
 
@@ -168,6 +172,62 @@ def main() -> None:
 
     with tab_map["Coverage"]:
         _render_coverage_tab(indicator, long_df, citation)
+
+    with tab_map["Insights"]:
+        _render_insights_tab(catalog, topic_key, indicator, long_df, citation)
+
+
+def _render_insights_tab(
+    catalog, topic_key: str, indicator, long_df: pd.DataFrame, citation
+) -> None:  # noqa: ANN001 - avoids import cycle noise
+    series_df = _load_indicator_series(indicator.key)
+    if series_df.empty or not indicator.temporal_start:
+        st.info("Insights need the full time series, unavailable in offline mode.")
+        return
+
+    years_available = sorted(series_df["date"].unique())
+    base_year, end_year = years_available[0], years_available[-1]
+    convergence = compute_convergence(
+        series_df, base_year, end_year, ceiling=indicator.saturation_ceiling
+    )
+    render_convergence(convergence, indicator.label, base_year, end_year, [citation])
+
+    st.divider()
+
+    topic_indicators = [
+        i
+        for i in catalog.indicators_for_topic(topic_key)
+        if i.enriched and i.key != indicator.key
+    ]
+    feature_keys = [indicator.key] + [i.key for i in topic_indicators][:2]
+    feature_frames = [
+        long_df[["place_dcid", "value"]].rename(columns={"value": indicator.key})
+    ]
+    feature_labels = {indicator.key: indicator.label}
+    for other in topic_indicators[:2]:
+        other_df = _load_indicator_latest(other.key)
+        if other_df.empty:
+            continue
+        feature_frames.append(
+            other_df[["place_dcid", "value"]].rename(columns={"value": other.key})
+        )
+        feature_labels[other.key] = other.label
+
+    if len(feature_frames) < 2:
+        st.info(
+            "Country archetypes need at least two enriched indicators in this "
+            "topic. Add another indicator to catalog/indicators.yml and run "
+            "`make enrich` to unlock this."
+        )
+        return
+
+    merged = feature_frames[0]
+    for f in feature_frames[1:]:
+        merged = merged.merge(f, on="place_dcid", how="inner")
+    used_keys = [k for k in feature_keys if k in merged.columns]
+
+    archetypes = compute_archetypes(merged, feature_cols=used_keys)
+    render_archetypes(archetypes, feature_labels, [citation])
 
 
 def _render_trends_tab(
