@@ -20,11 +20,13 @@ from recipe.frames import (
     point_within_to_long,
     series_within_to_long,
 )
-from recipe.geography import audit_join, fetch_country_geojson
+from recipe.geography import audit_join, country_to_continent, fetch_country_geojson
 from recipe.keymatch import compute_join_spec
+from views.bivariate import render_bivariate
 from views.choropleth import render_choropleth
 from views.compatibility import render_compatibility_panel
 from views.priority_table import render_priority_table
+from views.trend_panel import render_trend_panel
 
 st.set_page_config(page_title="UN SDG Cross-Agency Dashboard", layout="wide")
 
@@ -58,6 +60,15 @@ def _load_indicator_series(dcid_key: str) -> pd.DataFrame:
     except Exception:  # noqa: BLE001 - offline client has no series_within snapshot
         return pd.DataFrame()
     return series_within_to_long(payload, indicator)
+
+
+@cached_data(ttl=3600)
+def _load_continent_map() -> dict[str, str]:
+    client = get_client()
+    try:
+        return country_to_continent(client)
+    except Exception:  # noqa: BLE001 - offline client has no place/descendent snapshot
+        return {}
 
 
 def main() -> None:
@@ -104,12 +115,12 @@ def main() -> None:
         return
 
     audit = audit_join(geojson, set(long_df["place_dcid"]))
-
     latest_date = long_df["date"].mode().iloc[0]
     citation = citation_for_indicator(indicator, as_of=latest_date)
 
-    render_choropleth(geojson, long_df, audit, [citation])
-
+    compare_indicator = None
+    compare_df = pd.DataFrame()
+    spec = None
     if compare_key != "(none)":
         compare_indicator = catalog.indicators[compare_key]
         compare_df = _load_indicator_latest(compare_key)
@@ -122,8 +133,119 @@ def main() -> None:
         )
         render_compatibility_panel(indicator, compare_indicator, spec)
 
+    tab_labels = ["Map", "Trends"]
+    if compare_indicator is not None:
+        tab_labels.append("Gap analysis")
     if indicator.denominator and indicator.denominator in catalog.indicators:
-        _render_priority_section(catalog, indicator)
+        tab_labels.append("Priority")
+    tabs = st.tabs(tab_labels)
+    tab_map = dict(zip(tab_labels, tabs))
+
+    with tab_map["Map"]:
+        render_choropleth(geojson, long_df, audit, [citation])
+
+    with tab_map["Trends"]:
+        _render_trends_tab(indicator, long_df, citation)
+
+    if compare_indicator is not None:
+        with tab_map["Gap analysis"]:
+            _render_gap_analysis_tab(
+                catalog,
+                indicator,
+                compare_indicator,
+                long_df,
+                compare_df,
+                spec,
+                citation,
+            )
+
+    if "Priority" in tab_map:
+        with tab_map["Priority"]:
+            _render_priority_section(catalog, indicator)
+
+
+def _render_trends_tab(
+    indicator, long_df: pd.DataFrame, citation
+) -> None:  # noqa: ANN001 - Indicator/Citation, avoids import cycle noise
+    default_n = 5
+    # Default to the lowest values, not the highest: for a higher_is_better
+    # metric like electricity access, the countries furthest behind are the
+    # ones where a trend actually matters. The already-saturated places all
+    # look identical near the ceiling and add nothing to the chart.
+    ascending = indicator.polarity == "higher_is_better"
+    top_places = (
+        long_df.nsmallest(default_n, "value")["place_dcid"].tolist()
+        if ascending
+        else long_df.nlargest(default_n, "value")["place_dcid"].tolist()
+    )
+    series_df = _load_indicator_series(indicator.key)
+    if series_df.empty:
+        st.info("Trend view needs the full time series, unavailable in offline mode.")
+        return
+    names = (
+        long_df.set_index("place_dcid")["place_name"].to_dict()
+        if "place_name" in long_df.columns
+        else {}
+    )
+    series_df = series_df.copy()
+    series_df["place_name"] = series_df["place_dcid"].map(names)
+    render_trend_panel(
+        series_df,
+        top_places,
+        [citation],
+        unit_display=indicator.unit_display or indicator.unit,
+    )
+
+
+def _render_gap_analysis_tab(
+    catalog, indicator, compare_indicator, long_df, compare_df, spec, citation
+) -> None:  # noqa: ANN001 - avoids import cycle noise
+    if spec.comparability == "blocked":
+        st.error("Cannot cross-plot: " + "; ".join(spec.blockers))
+        return
+
+    pop_indicator = catalog.indicators.get("unicef_population")
+    merged = (
+        long_df[["place_dcid", "place_name", "value"]]
+        .rename(columns={"value": indicator.key})
+        .merge(
+            compare_df[["place_dcid", "value"]].rename(
+                columns={"value": compare_indicator.key}
+            ),
+            on="place_dcid",
+            how="inner",
+        )
+    )
+
+    size_col = None
+    if pop_indicator is not None:
+        pop_df = _load_indicator_latest(pop_indicator.key)
+        if not pop_df.empty:
+            merged = merged.merge(
+                pop_df[["place_dcid", "value"]].rename(columns={"value": "population"}),
+                on="place_dcid",
+                how="left",
+            )
+            size_col = "population"
+
+    continent_map = _load_continent_map()
+    color_col = None
+    if continent_map:
+        merged["continent"] = merged["place_dcid"].map(continent_map)
+        color_col = "continent"
+
+    compare_citation = citation_for_indicator(compare_indicator)
+    render_bivariate(
+        merged,
+        x_col=indicator.key,
+        y_col=compare_indicator.key,
+        x_label=indicator.label,
+        y_label=compare_indicator.label,
+        spec=spec,
+        citations=[citation, compare_citation],
+        size_col=size_col,
+        color_col=color_col,
+    )
 
 
 def _render_priority_section(

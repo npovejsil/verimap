@@ -78,3 +78,22 @@ def continent_country_counts(client: DataCommonsClient) -> dict[str, int]:
         except Exception:  # noqa: BLE001 - region filter is best-effort
             counts[continent] = 0
     return counts
+
+
+def country_to_continent(client: DataCommonsClient) -> dict[str, str]:
+    """Build a country_dcid -> continent_name lookup, for coloring/region filters.
+
+    Data Commons has no upward place/parent lookup for countries (verified:
+    `/api/place/parent?dcids=country/KEN` returns `{}`), so this builds the
+    mapping from the downward `place/descendent` call on each continent
+    instead.
+    """
+    mapping: dict[str, str] = {}
+    for continent in _CONTINENTS:
+        try:
+            result = client.place_descendents([continent], "Country")
+            for country_dcid in result.get(continent, []):
+                mapping[country_dcid] = continent
+        except Exception:  # noqa: BLE001 - region filter is best-effort
+            continue
+    return mapping
