@@ -51,6 +51,13 @@ indicators:
     sdg_target: "6.1"
     saturation_ceiling: 100
 
+  sdg_forest_area:
+    dcid: undata/sdg/AG_LND_FRST
+    label: Forest area (% of land)
+    topics: [land_forests]
+    polarity: higher_is_better
+    sdg_target: "15.1"
+
   unicef_population:
     dcid: undata/unicef/DM_POP
     label: Total population

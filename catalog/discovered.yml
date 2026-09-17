@@ -113,3 +113,94 @@ indicators:
     place_coverage: 232
     unit_display: Persons
     provenance_url: https://data.unicef.org/
+  candidate_ag_lnd_frstmgt_sdg:
+    dcid: undata/sdg/AG_LND_FRSTMGT
+    label: Proportion of forest area with a long-term management plan
+    source_agency: sdg
+    code: AG_LND_FRSTMGT
+    dimensions: {}
+    status: candidate
+  candidate_ag_lnd_frstn_sdg:
+    dcid: undata/sdg/AG_LND_FRSTN
+    label: Forest area
+    source_agency: sdg
+    code: AG_LND_FRSTN
+    dimensions: {}
+    status: candidate
+  candidate_ag_lnd_frstcert_sdg:
+    dcid: undata/sdg/AG_LND_FRSTCERT
+    label: Forest area certified under an independently verified certification scheme
+    source_agency: sdg
+    code: AG_LND_FRSTCERT
+    dimensions: {}
+    status: candidate
+  candidate_ag_lnd_frst_sdg:
+    dcid: undata/sdg/AG_LND_FRST
+    label: Forest area as a proportion of total land area
+    source_agency: sdg
+    code: AG_LND_FRST
+    dimensions: {}
+    status: candidate
+  candidate_emp_temp_nb_ilo:
+    dcid: undata/ilo/EMP_TEMP_NB.ECONOMIC_ACTIVITY--ISIC3_A02__SEX--F
+    label: Employment (previous ILO definition - ICLS13) [Economic activity=Forestry,
+      logging and related service activities (ISIC3 - A02), Sex=Female]
+    source_agency: ilo
+    code: EMP_TEMP_NB
+    dimensions:
+      ECONOMIC_ACTIVITY: ISIC3_A02
+      SEX: F
+    status: candidate
+  candidate_ag_lnd_frstchg_sdg:
+    dcid: undata/sdg/AG_LND_FRSTCHG
+    label: Annual forest area change rate
+    source_agency: sdg
+    code: AG_LND_FRSTCHG
+    dimensions: {}
+    status: candidate
+  candidate_ag_lnd_frstbiopha_sdg:
+    dcid: undata/sdg/AG_LND_FRSTBIOPHA
+    label: Above-ground biomass in forest
+    source_agency: sdg
+    code: AG_LND_FRSTBIOPHA
+    dimensions: {}
+    status: candidate
+  candidate_ag_lnd_frstprct_sdg:
+    dcid: undata/sdg/AG_LND_FRSTPRCT
+    label: Proportion of forest area within legally established protected areas
+    source_agency: sdg
+    code: AG_LND_FRSTPRCT
+    dimensions: {}
+    status: candidate
+  candidate_er_mtn_grncov_sdg:
+    dcid: undata/sdg/ER_MTN_GRNCOV.LAND_COVER--TRE
+    label: Area of mountain green cover [Land cover type=Tree-covered areas]
+    source_agency: sdg
+    code: ER_MTN_GRNCOV
+    dimensions:
+      LAND_COVER: TRE
+    status: candidate
+  candidate_er_mtn_grncvi_sdg:
+    dcid: undata/sdg/ER_MTN_GRNCVI.LAND_COVER--TRE
+    label: Mountain Green Cover Index [Land cover type=Tree-covered areas]
+    source_agency: sdg
+    code: ER_MTN_GRNCVI
+    dimensions:
+      LAND_COVER: TRE
+    status: candidate
+  sdg_forest_area:
+    dcid: undata/sdg/AG_LND_FRST
+    label: Forest area (% of land)
+    source_agency: sdg
+    code: AG_LND_FRST
+    dimensions: {}
+    provenance_id: undata/p/SDG
+    unit: Percent
+    temporal_start: '1990'
+    temporal_end: '2025'
+    value_min: 0
+    value_max: 97.86
+    facet_count: 1
+    place_coverage: 235
+    unit_display: '%'
+    provenance_url: https://unstats.un.org/sdgs/dataportal

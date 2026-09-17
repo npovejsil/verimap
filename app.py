@@ -9,6 +9,7 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
+from analytics.coverage import compute_coverage
 from analytics.gap_scoring import priority_score, unserved_population
 from analytics.trends import fit_trends_excluding_saturated
 from recipe.attribution import citation_for_indicator
@@ -25,6 +26,7 @@ from recipe.keymatch import compute_join_spec
 from views.bivariate import render_bivariate
 from views.choropleth import render_choropleth
 from views.compatibility import render_compatibility_panel
+from views.coverage_panel import render_coverage_panel
 from views.priority_table import render_priority_table
 from views.trend_panel import render_trend_panel
 
@@ -138,6 +140,7 @@ def main() -> None:
         tab_labels.append("Gap analysis")
     if indicator.denominator and indicator.denominator in catalog.indicators:
         tab_labels.append("Priority")
+    tab_labels.append("Coverage")
     tabs = st.tabs(tab_labels)
     tab_map = dict(zip(tab_labels, tabs))
 
@@ -162,6 +165,9 @@ def main() -> None:
     if "Priority" in tab_map:
         with tab_map["Priority"]:
             _render_priority_section(catalog, indicator)
+
+    with tab_map["Coverage"]:
+        _render_coverage_tab(indicator, long_df, citation)
 
 
 def _render_trends_tab(
@@ -195,6 +201,32 @@ def _render_trends_tab(
         [citation],
         unit_display=indicator.unit_display or indicator.unit,
     )
+
+
+def _render_coverage_tab(
+    indicator, long_df: pd.DataFrame, citation
+) -> None:  # noqa: ANN001 - Indicator/Citation, avoids import cycle noise
+    series_df = _load_indicator_series(indicator.key)
+    if series_df.empty:
+        st.info(
+            "Coverage view needs the full time series, unavailable in offline mode."
+        )
+        return
+    if not indicator.temporal_start or not indicator.temporal_end:
+        st.info("Coverage view needs an enriched temporal range for this indicator.")
+        return
+
+    names = (
+        long_df.set_index("place_dcid")["place_name"].to_dict()
+        if "place_name" in long_df.columns
+        else {}
+    )
+    series_df = series_df.copy()
+    series_df["place_name"] = series_df["place_dcid"].map(names)
+
+    start, end = int(indicator.temporal_start), int(indicator.temporal_end)
+    report = compute_coverage(series_df, start, end)
+    render_coverage_panel(series_df, report, [citation], start, end)
 
 
 def _render_gap_analysis_tab(
