@@ -12,17 +12,19 @@ import streamlit as st
 from recipe.attribution import citation_for_indicator
 from recipe.cache import cached_data
 from recipe.catalog import load_catalog
-from recipe.datacommons_client import DataCommonsClient
+from recipe.datacommons_client import get_client
 from recipe.frames import attach_place_names, point_within_to_long
 from recipe.geography import audit_join, fetch_country_geojson
+from recipe.keymatch import compute_join_spec
 from views.choropleth import render_choropleth
+from views.compatibility import render_compatibility_panel
 
 st.set_page_config(page_title="UN SDG Cross-Agency Dashboard", layout="wide")
 
 
 @cached_data(ttl=3600)
 def _load_geojson() -> dict:
-    client = DataCommonsClient()
+    client = get_client()
     return fetch_country_geojson(client)
 
 
@@ -30,7 +32,7 @@ def _load_geojson() -> dict:
 def _load_indicator_latest(dcid_key: str) -> pd.DataFrame:
     catalog = load_catalog()
     indicator = catalog.indicators[dcid_key]
-    client = DataCommonsClient()
+    client = get_client()
     payload = client.point_within("Earth", "Country", [indicator.dcid])
     long_df = point_within_to_long(payload, indicator)
     if long_df.empty:
@@ -66,6 +68,15 @@ def main() -> None:
     )
     indicator = catalog.indicators[indicator_key]
 
+    all_indicators = [i for i in catalog.indicators.values() if i.role != "denominator"]
+    compare_key = st.sidebar.selectbox(
+        "Compare against",
+        ["(none)"] + [i.key for i in all_indicators if i.key != indicator_key],
+        format_func=lambda k: (
+            "(none)" if k == "(none)" else catalog.indicators[k].label
+        ),
+    )
+
     geojson = _load_geojson()
     long_df = _load_indicator_latest(indicator_key)
 
@@ -79,6 +90,18 @@ def main() -> None:
     citation = citation_for_indicator(indicator, as_of=latest_date)
 
     render_choropleth(geojson, long_df, audit, [citation])
+
+    if compare_key != "(none)":
+        compare_indicator = catalog.indicators[compare_key]
+        compare_df = _load_indicator_latest(compare_key)
+        spec = compute_join_spec(
+            indicator,
+            compare_indicator,
+            catalog,
+            set(long_df["place_dcid"]),
+            set(compare_df["place_dcid"]) if not compare_df.empty else set(),
+        )
+        render_compatibility_panel(indicator, compare_indicator, spec)
 
 
 if __name__ == "__main__":

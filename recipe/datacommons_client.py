@@ -7,8 +7,11 @@ requires no MCP session and no auth.
 
 from __future__ import annotations
 
+import json
+import os
 import time
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Sequence
 
 import requests
@@ -16,6 +19,7 @@ from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 BASE_URL = "https://unsd-datacommons.gcp.un-icc.cloud"
+SNAPSHOT_DIR = Path(__file__).resolve().parent.parent / "cache" / "snapshot"
 
 
 class DataCommonsError(Exception):
@@ -210,3 +214,98 @@ class DataCommonsClient:
         params = [("query", query)]
         result = self._get("/api/stats/stat-var-search", params)
         return result.get("statVars") or result.get("results") or []
+
+
+class OfflineDataCommonsClient:
+    """Snapshot-backed client matching DataCommonsClient's method surface.
+
+    Reads only from cache/snapshot/ (populated by scripts/snapshot.py) and
+    never touches the network. Used when DATA_BEARS_OFFLINE=1, so a demo
+    survives a dead connection.
+
+    Caveat: this only removes the UN Data Commons API as a dependency.
+    pydeck's basemap (Carto/OpenStreetMap tiles) still fetches tiles over
+    the network on first render — the choropleth colors and data are fully
+    offline, but the map background will be blank without any connectivity
+    at all.
+    """
+
+    def __init__(self, snapshot_dir: Path = SNAPSHOT_DIR) -> None:
+        self.snapshot_dir = snapshot_dir
+
+    def _load(self, name: str) -> dict[str, Any]:
+        path = self.snapshot_dir / name
+        if not path.exists():
+            raise DataCommonsError(
+                f"No snapshot at {path}. Run `make snapshot` while online first."
+            )
+        return json.loads(path.read_text())
+
+    def _indicator_key_for_dcid(self, dcid: str) -> str | None:
+        # snapshot files are named point_<indicator_key>.json; scan for a
+        # match rather than requiring the caller to know the key.
+        for path in self.snapshot_dir.glob("point_*.json"):
+            payload = json.loads(path.read_text())
+            if dcid in payload.get("data", {}):
+                return path.stem.removeprefix("point_")
+        return None
+
+    def point(
+        self, entities: Sequence[str], variables: Sequence[str]
+    ) -> ObservationPayload:
+        return self.point_within("Earth", "Country", variables)
+
+    def series(
+        self, entities: Sequence[str], variables: Sequence[str]
+    ) -> ObservationPayload:
+        raise DataCommonsError("series() has no offline snapshot; use point_within.")
+
+    def point_within(
+        self, parent: str, child_type: str, variables: Sequence[str]
+    ) -> ObservationPayload:
+        data: dict[str, Any] = {}
+        facets: dict[str, Any] = {}
+        for dcid in variables:
+            key = self._indicator_key_for_dcid(dcid)
+            if key is None:
+                raise EmptyResponseError(dcid, "offline snapshot")
+            payload = self._load(f"point_{key}.json")
+            data.update(payload["data"])
+            facets.update(payload["facets"])
+        return ObservationPayload(
+            data=data, facets=facets, requested_variables=tuple(variables)
+        )
+
+    def series_within(
+        self, parent: str, child_type: str, variables: Sequence[str]
+    ) -> ObservationPayload:
+        raise DataCommonsError(
+            "series_within() has no offline snapshot; use point_within."
+        )
+
+    def geojson(
+        self, place_dcid: str = "Earth", place_type: str = "Country"
+    ) -> dict[str, Any]:
+        return self._load("geojson_earth_country.json")
+
+    def place_names(self, dcids: Sequence[str], batch_size: int = 25) -> dict[str, str]:
+        names = self._load("place_names.json")
+        return {d: names[d] for d in dcids if d in names}
+
+    def place_descendents(
+        self, dcids: Sequence[str], descendent_type: str
+    ) -> dict[str, Any]:
+        raise DataCommonsError("place_descendents() has no offline snapshot.")
+
+    def variable_info(self, dcids: Sequence[str]) -> dict[str, Any]:
+        raise DataCommonsError("variable_info() has no offline snapshot.")
+
+    def search_variables(self, query: str) -> list[dict[str, Any]]:
+        raise DataCommonsError("search_variables() has no offline snapshot.")
+
+
+def get_client() -> DataCommonsClient | OfflineDataCommonsClient:
+    """Return the offline snapshot client if DATA_BEARS_OFFLINE=1, else live."""
+    if os.environ.get("DATA_BEARS_OFFLINE") == "1":
+        return OfflineDataCommonsClient()
+    return DataCommonsClient()
