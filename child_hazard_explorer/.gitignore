@@ -1,0 +1,14 @@
+# Secrets - the Solr credentials must never reach the repo or the browser
+.env
+.env.local
+
+# Raw downloads and logs. data/ is the app's served directory (vite publicDir),
+# so anything large or private must stay out of it or it ends up in dist/.
+.cache/
+
+node_modules/
+dist/
+__pycache__/
+*.pyc
+.DS_Store
+tsconfig.tsbuildinfo
