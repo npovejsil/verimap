@@ -8,7 +8,7 @@ Pick a country on the world map, drop through its admin-1 areas into the
 admin-2 units, and read every number the database holds for any one of them.
 
 **Live:** https://claude.ai/artifact/JfpsFbhpKWJn4Z6NEiHh75
-*(private — the owner has to grant access before it opens for you)*
+*(public — anyone with the link can open it; no account or sign-in needed)*
 
 ---
 
@@ -69,7 +69,8 @@ like a complete one.
 
 ### Just looking
 
-Open the link above. Nothing to install.
+Open the link above. Nothing to install, no sign-in — the link works for anyone
+you send it to.
 
 You need a **browser with WebGL** (the map renders through it) and about
 **4.9 MB** for the first load, then ~0.4–0.7 MB per country you open. No
@@ -290,7 +291,11 @@ python3 etl/bundle_boundaries.py
 python3 etl/stage_artifact.py      # prints the budget, fails if over
 ```
 
-Current bundle: **163 files, 54.1 MB**. The savings came from dropping the
+The published page is shared **publicly, to anyone with the link**. That is why
+the lineage panel names the hazard database and its query but not its endpoint:
+the endpoint is credentialed, and a public page is no place to advertise it.
+
+Current bundle: **164 files, 54.2 MB**. The savings came from dropping the
 retired SDG artifacts, putting both boundary levels in one shared-arc file per
 country, chunking, and trimming stored number precision. Chunk counts stay high
 (60 boundary, 90 hazard) and are packed largest-first, so opening a country
