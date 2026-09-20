@@ -10,8 +10,8 @@ import pandas as pd
 import streamlit as st
 
 from analytics.anomalies import detect_anomalies
-from analytics.archetypes import compute_archetypes
-from analytics.convergence import compute_convergence
+from analytics.archetypes import compute_archetypes, rank_groups_by_indicator
+from analytics.convergence import compute_convergence, rank_convergence_movers
 from analytics.coverage import compute_coverage
 from analytics.gap_scoring import priority_score, unserved_population
 from analytics.trends import fit_trends_excluding_saturated
@@ -195,12 +195,32 @@ def _render_insights_tab(
         st.info("This view needs more historical data than we have loaded right now.")
         return
 
+    names = (
+        long_df.set_index("place_dcid")["place_name"].dropna().to_dict()
+        if "place_name" in long_df.columns
+        else {}
+    )
+
     years_available = sorted(series_df["date"].unique())
     base_year, end_year = years_available[0], years_available[-1]
     convergence = compute_convergence(
         series_df, base_year, end_year, ceiling=indicator.saturation_ceiling
     )
-    render_convergence(convergence, indicator.label, base_year, end_year, [citation])
+    movers = (
+        rank_convergence_movers(convergence, polarity=indicator.polarity)
+        if convergence is not None
+        else None
+    )
+    render_convergence(
+        convergence,
+        indicator.label,
+        base_year,
+        end_year,
+        [citation],
+        movers=movers,
+        place_names=names,
+        total_places=series_df["place_dcid"].nunique(),
+    )
 
     st.divider()
 
@@ -210,8 +230,19 @@ def _render_insights_tab(
         if i.enriched and i.key != indicator.key
     ]
     feature_keys = [indicator.key] + [i.key for i in topic_indicators][:2]
+    # place_name travels alongside value so archetype membership can be
+    # named later -- previously this frame carried dcids only, which made
+    # naming cluster membership impossible without a second lookup.
     feature_frames = [
-        long_df[["place_dcid", "value"]].rename(columns={"value": indicator.key})
+        (
+            long_df[["place_dcid", "place_name", "value"]].rename(
+                columns={"value": indicator.key}
+            )
+            if "place_name" in long_df.columns
+            else long_df[["place_dcid", "value"]].rename(
+                columns={"value": indicator.key}
+            )
+        )
     ]
     feature_labels = {indicator.key: indicator.label}
     for other in topic_indicators[:2]:
@@ -236,7 +267,20 @@ def _render_insights_tab(
     used_keys = [k for k in feature_keys if k in merged.columns]
 
     archetypes = compute_archetypes(merged, feature_cols=used_keys)
-    render_archetypes(archetypes, feature_labels, [citation])
+    group_ranking = (
+        rank_groups_by_indicator(
+            archetypes.cluster_centers, indicator.key, polarity=indicator.polarity
+        )
+        if archetypes is not None
+        else None
+    )
+    render_archetypes(
+        archetypes,
+        feature_labels,
+        [citation],
+        group_ranking=group_ranking,
+        place_names=names,
+    )
 
 
 def _render_trends_tab(
