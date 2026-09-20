@@ -319,6 +319,34 @@ def main() -> int:
         check(worst_pct < 0.02, "admin-1 percentages re-derived from totals",
               f"largest drift {worst_pct:.4f} pp")
 
+    # --- 6b3. Country totals against the rows they summarise --------------------
+    # Two independent derivations of the same figure: countries.json comes from a
+    # server-side facet over the whole database, the admin-2 chunks are the rows.
+    # Nothing compared them until now, so a drift between the two would have
+    # surfaced as a quiet contradiction in the UI rather than a failed build.
+    if hazard_path.exists() and details:
+        totals = load(hazard_path)["countries"]
+        agree = differ = 0
+        worst = []
+        for iso3, detail in details.items():
+            for indicator, cell in totals.get(iso3, {}).get("indicators", {}).items():
+                block = detail["indicators"].get(indicator)
+                reported = cell.get("exposed")
+                if not block or reported is None:
+                    continue
+                summed = sum(v for v in block["exposed"] if v is not None)
+                # Per-row rounding is the only difference allowed.
+                if abs(summed - reported) <= max(1, 0.0005 * max(reported, 1)):
+                    agree += 1
+                else:
+                    differ += 1
+                    worst.append(f"{iso3}/{indicator} {reported:,} vs {summed:,}")
+        check(
+            not differ,
+            "country totals equal the sum of their admin-2 records",
+            f"{agree:,}/{agree + differ:,} cells" + (f", off: {worst[:2]}" if worst else ""),
+        )
+
     # --- 6c. Hazard units ----------------------------------------------------
     units_path = DATA / "hazard" / "units.json"
     hazard_path_ok = hazard_path.exists()

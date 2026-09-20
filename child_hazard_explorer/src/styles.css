@@ -351,3 +351,55 @@ body {
 @media (max-width: 900px) {
   .map-fallback { height: 320px; }
 }
+
+/* Lineage panel. Text tokens only -- nothing here encodes a value, so nothing
+   here competes with the map's ramp. */
+.source-body h3 {
+  font-family: "Roboto Condensed", Roboto, sans-serif;
+  font-size: 13px;
+  margin: 16px 0 6px;
+  color: var(--text-primary);
+}
+.stat-source {
+  margin: 4px 0 0;
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.crosscheck { border-top: 1px solid var(--line); padding: 10px 0; }
+.crosscheck-head { display: flex; align-items: center; gap: 8px; }
+.crosscheck-head strong { font-size: 12px; color: var(--text-primary); }
+.crosscheck-figure {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.crosscheck-scope { color: var(--text-muted); }
+.crosscheck-list { margin: 6px 0 0; padding-left: 18px; font-size: 11px; color: var(--text-secondary); }
+.crosscheck-list li { margin: 2px 0; line-height: 1.45; }
+.tag {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--line);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+/* The word inside the tag carries the meaning, so the text keeps its theme
+   token and only the border is tinted -- readable in either mode, and never
+   colour alone. Both hues are from the validated palette in scale.ts. */
+.tag.ok { border-color: #1baf7a; }
+.tag.warn { border-color: #eda100; }
+.citation {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  background: var(--page);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 10px 12px;
+  margin: 6px 0;
+}

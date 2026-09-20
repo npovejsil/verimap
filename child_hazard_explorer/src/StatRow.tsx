@@ -3,6 +3,9 @@ export interface Stat {
   value: string;
   /** Rendered small after the value -- a unit, not part of the number. */
   suffix?: string;
+  /** The field this number is read from in the source, so a reader can trace
+   *  it back rather than take it on trust. */
+  source?: string;
 }
 
 /** A row of bare stat tiles.
@@ -22,6 +25,7 @@ export default function StatRow({ stats }: { stats: Stat[] }) {
             {stat.value}
             {stat.suffix && <span className="stat-unit">{stat.suffix}</span>}
           </dd>
+          {stat.source && <p className="stat-source">{stat.source}</p>}
         </div>
       ))}
     </dl>

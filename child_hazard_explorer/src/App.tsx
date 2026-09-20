@@ -14,6 +14,8 @@ import {
   loadUnits,
   type HazardCountries,
 } from "./data/hazard";
+import SourcePanel from "./SourcePanel";
+import { fieldFor, loadProvenance, type Provenance } from "./data/provenance";
 import { useHazardDetail } from "./useHazardDetail";
 import { useStore, type Places } from "./store";
 import { SEQUENTIAL, formatValue, quantileBreaks } from "./scale";
@@ -36,6 +38,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [showTable, setShowTable] = useState(false);
   const [areaStatus, setAreaStatus] = useState<AreaStatus>("off");
+  const [prov, setProv] = useState<Provenance | null>(null);
 
   useEffect(() => {
     fetch("places.json")
@@ -44,6 +47,7 @@ export default function App() {
       .catch((e: unknown) => setError(String(e)));
     loadHazard().then(setHazard).catch((e: unknown) => setError(String(e)));
     loadUnits().then(setUnits);
+    loadProvenance().then(setProv);
   }, [setPlaces]);
 
   /** One value per country, for the world choropleth. */
@@ -107,29 +111,39 @@ export default function App() {
     [areaDetail, selectedArea, hazardIndicator],
   );
 
+  /** Admin-2 is recorded, so it names its source field; admin-1 is computed,
+   *  so it names the derivation rather than a field that has no value there. */
+  const trace = (shown: string, derived: string) =>
+    adminLevel === 2 ? fieldFor(prov, shown) : derived;
+
   const areaStats: Stat[] = facts
     ? [
         {
           label: "Exposed children",
           value: facts.exposed === null ? "—" : Math.round(facts.exposed).toLocaleString(),
+          source: trace("Exposed children", "sum of children"),
         },
         {
           label: "Exposure",
           value: facts.pct === null ? "—" : facts.pct.toFixed(1),
           suffix: facts.pct === null ? undefined : "%",
+          source: trace("Exposure %", "re-derived from totals"),
         },
         {
           label: "Children in area",
           value: facts.pop === null ? "—" : Math.round(facts.pop).toLocaleString(),
+          source: trace("Children in area", "sum of children"),
         },
         {
           label: HAZARD_MEASURE[hazardIndicator] ?? "Hazard (mean)",
           value: facts.hazard === null ? "—" : measure(facts.hazard),
           suffix: facts.hazard === null ? undefined : units[hazardIndicator],
+          source: trace("Hazard measure", "mean of children"),
         },
         {
           label: "Exposure class",
           value: facts.cls === null ? "—" : facts.cls.toFixed(1),
+          source: trace("Exposure class", "max of children"),
         },
       ]
     : [];
@@ -314,6 +328,12 @@ export default function App() {
             )}
           </div>
         )}
+
+        <SourcePanel
+          prov={prov}
+          iso3={drilldownIso}
+          countryName={drilldownIso ? nameOfCountry(`country/${drilldownIso}`) : undefined}
+        />
 
         {drilldownIso && (
           <div className="panel">

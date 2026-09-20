@@ -185,7 +185,7 @@ export async function loadUnits(): Promise<Record<string, string>> {
 
 /** The full row for one unit, found by stem. Null when the indicator has no
  *  record for it -- coverage is uneven, and 22 indicators do not all reach
- *  every one of the 41,023 units. */
+ *  every one of the admin-2 units. */
 export function areaFacts(
   detail: HazardDetail,
   indicator: string,

@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import { HAZARD_LABELS, HAZARD_METRICS } from "./data/hazard";
+import { loadProvenance } from "./data/provenance";
 import { useStore } from "./store";
 
 /** The 22 hazard indicators. Unlike the SDG tree this is a flat list -- the
@@ -8,6 +10,12 @@ export default function HazardNav({ indicators }: { indicators: string[] }) {
   const setHazard = useStore((s) => s.setHazard);
   const metric = useStore((s) => s.hazardMetric);
   const setMetric = useStore((s) => s.setHazardMetric);
+  // Counted from the shipped data rather than written here: this line used to
+  // claim 41,023 units while the data carried 40,641.
+  const [units, setUnits] = useState<number | null>(null);
+  useEffect(() => {
+    loadProvenance().then((p) => setUnits(p?.counts.admin2_units ?? null));
+  }, []);
 
   return (
     <div className="hazard-nav">
@@ -23,7 +31,8 @@ export default function HazardNav({ indicators }: { indicators: string[] }) {
         ))}
       </div>
       <p className="note">
-        Children aged 0&ndash;17 &middot; 2025 &middot; aggregated from 41,023 admin-2 units
+        Children aged 0&ndash;17 &middot; 2025
+        {units !== null && <> &middot; aggregated from {units.toLocaleString()} admin-2 units</>}
       </p>
       {indicators.map((code) => (
         <button

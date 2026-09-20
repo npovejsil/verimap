@@ -158,6 +158,7 @@ etl/
   build_adm1_hazard.py  rolls admin-2 records up to admin-1
   build_area_names.py   streams boundaries -> ucode/name map (no geometry parsed)
   build_boundaries.sh   GeoRepo GeoJSON -> simplified TopoJSON (admin-0)
+  build_provenance.py   sources, field map and cross-checks -> provenance.json
   stage_artifact.py     dist/ -> publishable bundle, with a size/file budget
   verify.py             27 end-to-end checks; gates the build
 src/
@@ -266,7 +267,45 @@ still fetches roughly that country rather than a tenth of the world.
 
 ---
 
+## Citation and lineage
+
+The app carries its own provenance. **Sources & lineage**, under the map, is
+rendered from `data/provenance.json`, which `etl/build_provenance.py` computes
+*from the artifacts themselves* — so it cannot drift from what ships the way a
+hardcoded attribution line can. (It had: the sidebar claimed 41,023 admin-2
+units while the data carried 40,641.)
+
+It shows each source with its licence and retrieval date, which records were
+selected (`sex:_T`, `age:Y0T17`, error-status rows excluded), **which field
+backs each number on screen**, what was done to it, and a copyable citation.
+Each figure in the readout names its own source field, so `Exposed children`
+is visibly `exposure_absolute` and an admin-1 figure says it is a sum rather
+than a record.
+
+### Cross-checks
+
+Several figures have **two independent derivations**, so they are compared
+rather than trusted. Computed at build time and shown in the panel:
+
+| Check | Result |
+|---|---|
+| Country total (server-side facet) vs Σ its admin-2 rows | **4,380 / 4,380 agree** |
+| Admin-1 roll-up vs Σ its admin-2 children | exact |
+| Boundary version cited by the record vs published now | **49 differ** — all Solomon Islands, `_V2` against GeoRepo's `_V3` |
+| Admin-2 units with a published name | 50 of 40,641 missing |
+| Admin-1 areas aggregated from *every* child | 4,706 from only some |
+
+The first is gated by `verify.py`, so a future ETL change that breaks the
+identity fails the build instead of surfacing as a quiet contradiction on
+screen. The disagreements are shown rather than silently absorbed — the version
+mismatch is resolved by matching on the versionless code, and the panel says so.
+
+```bash
+python3 etl/build_provenance.py   # regenerate after any data rebuild
+```
+
 ## Attribution
 
 Boundaries: **UNICEF GeoRepo** (CC BY 4.0). Hazard data: **UNICEF Global Child
-Hazard Database**. SDG statistics: **UN System Data Commons**.
+Hazard Database** — licence terms not confirmed; check with UNICEF before
+redistributing. SDG statistics: **UN System Data Commons**.
