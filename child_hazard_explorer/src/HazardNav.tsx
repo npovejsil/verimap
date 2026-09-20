@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
-import { HAZARD_LABELS, HAZARD_METRICS } from "./data/hazard";
+import { HAZARD_METRICS } from "./data/hazard";
 import { loadProvenance } from "./data/provenance";
 import { useStore } from "./store";
+import { useT } from "./i18n";
+import { indicatorLabel } from "./i18n/indicators";
 
 /** The 22 hazard indicators. Unlike the SDG tree this is a flat list -- the
  *  database has one level, a single year (2025), and children 0-17 only. */
@@ -13,6 +15,7 @@ export default function HazardNav({ indicators }: { indicators: string[] }) {
   // Counted from the shipped data rather than written here: this line used to
   // claim 41,023 units while the data carried 40,641.
   const [units, setUnits] = useState<number | null>(null);
+  const { t, n, locale } = useT();
   useEffect(() => {
     loadProvenance().then((p) => setUnits(p?.counts.admin2_units ?? null));
   }, []);
@@ -26,13 +29,13 @@ export default function HazardNav({ indicators }: { indicators: string[] }) {
             className={`pill ${metric === m.key ? "on" : ""}`}
             onClick={() => setMetric(m.key)}
           >
-            {m.label}
+            {t(m.key === "pct" ? "metric.pct" : "metric.exposed")}
           </button>
         ))}
       </div>
       <p className="note">
-        Children aged 0&ndash;17 &middot; 2025
-        {units !== null && <> &middot; aggregated from {units.toLocaleString()} admin-2 units</>}
+        {t("app.subtitle")}
+        {units !== null && <> &middot; {n(units)}</>}
       </p>
       {indicators.map((code) => (
         <button
@@ -41,7 +44,7 @@ export default function HazardNav({ indicators }: { indicators: string[] }) {
           onClick={() => setHazard(code)}
           title={code}
         >
-          {HAZARD_LABELS[code] ?? code}
+          {indicatorLabel(code, locale)}
         </button>
       ))}
     </div>

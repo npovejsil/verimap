@@ -40,6 +40,13 @@ admin-2 units**.
   from a lookup table in the front end.
 - **Compare.** Select several countries for a ranked comparison, as a chart or
   a table.
+- **Read it in ten languages.** The selector at the top right offers the UN's
+  six official languages plus Hindi, Portuguese, Bengali and Indonesian. Arabic
+  switches the interface to right-to-left; the map itself is never mirrored,
+  because geography does not flip.
+
+Areas with **no record** are drawn in a distinct grey and counted in the legend
+("No data (51)"), rather than blending into the sea as they used to.
 
 ### One thing worth understanding
 
@@ -121,6 +128,24 @@ The hazard Solr **cannot** be called from a browser: it sends no CORS headers,
 and its credentials must never reach the client. It is queried only at build
 time, and the published bundle contains no credentials — `verify.py` checks.
 
+### On the translations
+
+The interface is **machine-translated and has not been reviewed by a speaker** —
+the language menu says so. Each locale lives in one file under `src/i18n/`, and
+any key a translation omits falls back to English, so replacing a file with a
+reviewed translation is a drop-in change.
+
+Three things stay in their original language, by design, and the lineage panel
+says so:
+
+- **place names** — the 249 country and 40,641 area names come from GeoRepo in
+  English; translating them is a data problem, not a UI one;
+- **database field names** (`exposure_absolute`, …) — they are literal
+  identifiers in the source, and translating them would break the verification
+  they exist for;
+- **the lineage panel's source descriptions** — they are data, generated into
+  `provenance.json` by the ETL.
+
 ### What the data is, and is not
 
 - **One year.** Every one of the database's 5,415,036 records is `time_period:
@@ -168,6 +193,7 @@ etl/
   verify.py             27 end-to-end checks; gates the build
 src/
   App.tsx               layout, selection, the drilldown wiring
+  i18n/                 ten languages; English is the fallback for any gap
   WorldMap.tsx          MapLibre choropleth, both admin levels, zoom switching
   HazardNav.tsx         the 22 indicators
   HazardAreas.tsx       ranked bars for one country
@@ -294,6 +320,7 @@ rather than trusted. Computed at build time and shown in the panel:
 
 | Check | Result |
 |---|---|
+| No-data colour vs map background and palest data step | **dE 27.7 / 22.8** (target ≥ 8) |
 | Country total (server-side facet) vs Σ its admin-2 rows | **4,380 / 4,380 agree** |
 | Admin-1 roll-up vs Σ its admin-2 children | exact |
 | Boundary version cited by the record vs published now | **49 differ** — all Solomon Islands, `_V2` against GeoRepo's `_V3` |

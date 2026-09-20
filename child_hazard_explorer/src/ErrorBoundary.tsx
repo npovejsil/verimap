@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
+import { en } from "./i18n/strings";
 
 interface State {
   error: Error | null;
@@ -28,15 +29,13 @@ export default class ErrorBoundary extends Component<{ children: ReactNode }, St
     return (
       <div className="boundary">
         <div className="panel">
-          <div className="panel-head"><h2>Something went wrong</h2></div>
-          <p className="note">
-            This page hit an error it could not recover from. Reloading usually
-            clears it; if it happens every time, the message below is the useful
-            part of a bug report.
-          </p>
+          {/* English only: a hook cannot run here, and if the store is what
+              broke, reading the chosen language from it would fail too. */}
+          <div className="panel-head"><h2>{en["error.title"]}</h2></div>
+          <p className="note">{en["error.body"]}</p>
           <p className="citation">{String(this.state.error?.message || this.state.error)}</p>
           <button className="linkish" onClick={() => location.reload()}>
-            Reload the page
+            {en["error.reload"]}
           </button>
         </div>
       </div>

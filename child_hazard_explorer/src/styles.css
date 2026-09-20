@@ -63,7 +63,7 @@ body {
   background: var(--surface-1);
   border-bottom: 1px solid var(--line);
 }
-.brand { margin-right: auto; }
+.brand { margin-inline-end: auto; }
 .controls {
   display: flex;
   flex-wrap: wrap;
@@ -137,7 +137,7 @@ body {
   align-items: center;
   gap: 8px;
   width: 100%;
-  text-align: left;
+  text-align: start;
   border: 1px solid var(--line);
   border-left: 4px solid;
   background: transparent;
@@ -163,7 +163,7 @@ body {
 .branch-toggle, .branch-leaf {
   display: block;
   width: 100%;
-  text-align: left;
+  text-align: start;
   background: none;
   border: none;
   color: var(--text-secondary);
@@ -176,7 +176,7 @@ body {
 .variable {
   display: block;
   width: 100%;
-  text-align: left;
+  text-align: start;
   border: none;
   background: none;
   color: var(--accent);
@@ -253,7 +253,7 @@ body {
   position: absolute; top: 14px; right: -12px;
   font-size: 10px; font-style: normal; color: var(--text-muted);
 }
-.legend-note { font-size: 11px; color: var(--text-muted); margin-left: auto; }
+.legend-note { font-size: 11px; color: var(--text-muted); margin-inline-start: auto; }
 .prov { font-size: 11px; color: var(--text-muted); margin: 14px 0 0; }
 .prov a { color: var(--text-muted); }
 
@@ -267,10 +267,10 @@ body {
 .legend { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 8px; font-size: 11px; color: var(--text-secondary); }
 .legend-item { display: inline-flex; align-items: center; gap: 5px; }
 .legend-item i { width: 10px; height: 10px; border-radius: 2px; display: inline-block; }
-.unit { margin-left: auto; color: var(--text-muted); }
+.unit { margin-inline-start: auto; color: var(--text-muted); }
 
 .table { width: 100%; border-collapse: collapse; font-size: 12px; }
-.table th, .table td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--line); }
+.table th, .table td { text-align: start; padding: 5px 8px; border-bottom: 1px solid var(--line); }
 .table th { color: var(--text-secondary); font-weight: 500; }
 
 .empty { color: var(--text-muted); font-size: 12px; margin: 6px 0; }
@@ -278,7 +278,7 @@ body {
 @media (max-width: 900px) {
   .app { grid-template-columns: 1fr; grid-template-areas: "header" "sidebar" "main"; }
   .sidebar { max-height: 240px; border-right: none; border-bottom: 1px solid var(--line); }
-  .brand { margin-right: 0; flex-basis: 100%; }
+  .brand { margin-inline-end: 0; flex-basis: 100%; }
   .control.grow { flex-basis: 100%; }
   .map { height: 320px; }
 }
@@ -321,14 +321,14 @@ body {
   font-size: 12px;
   font-weight: 400;
   color: var(--text-muted);
-  margin-left: 4px;
+  margin-inline-start: 4px;
 }
 .hint { font-size: 12px; color: var(--text-muted); }
 
 /* Panel heads can carry a control beside the title; keep the title left and
    everything else pushed to the right edge. */
-.panel-head h2 { margin-right: auto; }
-.panel-head .hint { text-align: right; }
+.panel-head h2 { margin-inline-end: auto; }
+.panel-head .hint { text-align: end; }
 
 /* Shown in place of the map when the browser has no WebGL. Same footprint as
    the canvas so the page does not reflow around a missing map. */
@@ -376,7 +376,7 @@ body {
   font-variant-numeric: tabular-nums;
 }
 .crosscheck-scope { color: var(--text-muted); }
-.crosscheck-list { margin: 6px 0 0; padding-left: 18px; font-size: 11px; color: var(--text-secondary); }
+.crosscheck-list { margin: 6px 0 0; padding-inline-start: 18px; font-size: 11px; color: var(--text-secondary); }
 .crosscheck-list li { margin: 2px 0; line-height: 1.45; }
 .tag {
   font-size: 10px;
@@ -416,3 +416,31 @@ body {
   max-width: 260px;
 }
 .boundary { padding: 24px; max-width: 680px; margin: 0 auto; }
+
+/* "No data" sits beside the ramp, not inside it: absence is not a step on the
+   scale, and the ramp's swatches carry break values that would make no sense. */
+.legend-missing {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.legend-missing i {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1px solid var(--line);
+  display: inline-block;
+}
+
+/* The language control sits last in the header, so it lands at the trailing
+   edge -- right in English, left in Arabic, without a second rule. */
+.control.lang { margin-inline-start: auto; }
+.control.lang .country-select { max-width: 170px; }
+
+/* The map is not mirrored: geography does not flip. Only the chrome around it
+   follows the reading direction. */
+[dir="rtl"] .map-wrap,
+[dir="rtl"] .chart { direction: ltr; }
+[dir="rtl"] .bar-label { direction: rtl; }

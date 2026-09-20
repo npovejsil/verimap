@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { CrossCheck, Provenance } from "./data/provenance";
+import { useT } from "./i18n";
 
 /** A citation a reader can paste, dated to the extraction rather than to today. */
 function citation(prov: Provenance): string {
@@ -15,18 +16,19 @@ function citation(prov: Provenance): string {
 }
 
 function Check({ check, scope }: { check: CrossCheck; scope?: string }) {
+  const { t, n } = useT();
   const pct = check.total ? (check.agree / check.total) * 100 : 0;
   return (
     <div className="crosscheck">
       <div className="crosscheck-head">
         <span className={`tag ${check.passed ? "ok" : "warn"}`}>
-          {check.passed ? "agrees" : "differs"}
+          {t(check.passed ? "sources.agrees" : "sources.differs")}
         </span>
         <strong>{check.label}</strong>
       </div>
       <p className="note">{check.detail}</p>
       <p className="crosscheck-figure">
-        {check.agree.toLocaleString()} of {check.total.toLocaleString()}
+        {t("sources.ofTotal", { agree: n(check.agree), total: n(check.total) })}
         {check.total ? ` (${pct.toFixed(pct > 99.9 && pct < 100 ? 3 : 1)}%)` : ""}
         {scope && <span className="crosscheck-scope"> · {scope}</span>}
       </p>
@@ -65,13 +67,14 @@ export default function SourcePanel({
 }) {
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const { t, n } = useT();
 
   if (!prov) {
     return (
       <div className="panel">
-        <div className="panel-head"><h2>Sources &amp; lineage</h2></div>
+        <div className="panel-head"><h2>{t("sources.title")}</h2></div>
         <p className="empty">
-          Provenance was not built — run <code>python3 etl/build_provenance.py</code>.
+          {t("sources.missing", { command: "python3 etl/build_provenance.py" })}
         </p>
       </div>
     );
@@ -82,26 +85,32 @@ export default function SourcePanel({
   return (
     <div className="panel">
       <div className="panel-head">
-        <h2>Sources &amp; lineage</h2>
+        <h2>{t("sources.title")}</h2>
         <button className="linkish" onClick={() => setOpen(!open)}>
-          {open ? "Hide" : "Show"}
+          {t(open ? "sources.hide" : "sources.show")}
         </button>
       </div>
 
       <p className="note">
-        {prov.counts.admin2_units.toLocaleString()} admin-2 units ·{" "}
-        {prov.counts.admin1_areas.toLocaleString()} admin-1 areas ·{" "}
-        {prov.counts.indicators} indicators · {prov.counts.countries} countries.{" "}
-        {prov.sources.map((s) => s.name).join(" and ")}.
+        {t("sources.summary", {
+          units: n(prov.counts.admin2_units),
+          areas: n(prov.counts.admin1_areas),
+          indicators: prov.counts.indicators,
+          countries: prov.counts.countries,
+        })}{" "}
+        {prov.sources.map((s) => s.name).join(" · ")}
       </p>
 
       {here && (
         <p className="note">
-          <strong>{countryName ?? iso3}:</strong> {here.adm2_units.toLocaleString()} admin-2
-          units in {here.adm1_areas} admin-1 areas.{" "}
+          {t("sources.scoped", {
+            country: countryName ?? iso3 ?? "",
+            units: n(here.adm2_units),
+            areas: here.adm1_areas,
+          })}{" "}
           {here.facet_agrees
-            ? `Country totals match the sum of their records across all ${here.facet_cells} indicators.`
-            : "Country totals do not match the sum of their records."}
+            ? t("sources.scopedAgree", { n: here.facet_cells })
+            : t("sources.scopedDiffer")}
           {here.version_mismatch > 0 &&
             ` ${here.version_mismatch} unit(s) cite a superseded boundary version.`}
           {here.unnamed > 0 && ` ${here.unnamed} unit(s) have no published name.`}
@@ -110,10 +119,14 @@ export default function SourcePanel({
 
       {open && (
         <div className="source-body">
-          <h3>Sources</h3>
+          <h3>{t("sources.heading")}</h3>
           <table className="table">
             <thead>
-              <tr><th>Source</th><th>Provides</th><th>Access</th><th>Licence</th><th>Retrieved</th></tr>
+              <tr>
+                <th>{t("sources.colSource")}</th><th>{t("sources.colProvides")}</th>
+                <th>{t("sources.colAccess")}</th><th>{t("sources.colLicence")}</th>
+                <th>{t("sources.colRetrieved")}</th>
+              </tr>
             </thead>
             <tbody>
               {prov.sources.map((s) => (
@@ -128,14 +141,14 @@ export default function SourcePanel({
             </tbody>
           </table>
 
-          <h3>Which records were selected</h3>
+          <h3>{t("sources.selected")}</h3>
           <ul className="crosscheck-list">
             {prov.query.meaning.map((m) => <li key={m}>{m}</li>)}
           </ul>
 
-          <h3>Where each number comes from</h3>
+          <h3>{t("sources.fields")}</h3>
           <table className="table">
-            <thead><tr><th>Shown as</th><th>Field in the source</th></tr></thead>
+            <thead><tr><th>{t("sources.colShown")}</th><th>{t("sources.colField")}</th></tr></thead>
             <tbody>
               {prov.fields.map((f) => (
                 <tr key={f.shown}>
@@ -146,16 +159,13 @@ export default function SourcePanel({
             </tbody>
           </table>
 
-          <h3>What was done to it</h3>
+          <h3>{t("sources.applied")}</h3>
           <ul className="crosscheck-list">
             {prov.transformations.map((t) => <li key={t}>{t}</li>)}
           </ul>
 
-          <h3>Cross-checks</h3>
-          <p className="note">
-            Figures with two independent derivations, compared. These are computed
-            when the data is built, not asserted here.
-          </p>
+          <h3>{t("sources.checks")}</h3>
+          <p className="note">{t("sources.checksNote")}</p>
           {prov.crosschecks.checks.map((c) => (
             <Check
               key={c.id}
@@ -168,7 +178,9 @@ export default function SourcePanel({
             />
           ))}
 
-          <h3>Cite this</h3>
+          <p className="note">{t("sources.untranslated")}</p>
+
+          <h3>{t("sources.cite")}</h3>
           <p className="citation">{citation(prov)}</p>
           <button
             className="linkish"
@@ -179,7 +191,7 @@ export default function SourcePanel({
               );
             }}
           >
-            {copied ? "Copied" : "Copy citation"}
+            {t(copied ? "sources.copied" : "sources.copy")}
           </button>
         </div>
       )}

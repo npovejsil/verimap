@@ -2,6 +2,7 @@ import RankedBars, { type Row } from "./RankedBars";
 import { HAZARD_LABELS, stemOf, type AdminLevel } from "./data/hazard";
 import { useHazardDetail } from "./useHazardDetail";
 import { useStore } from "./store";
+import { useT } from "./i18n";
 
 const TOP_N = 15;
 
@@ -23,15 +24,16 @@ export default function HazardAreas({
   const selectedArea = useStore((s) => s.selectedArea);
   const setSelectedArea = useStore((s) => s.setSelectedArea);
   const { detail, loading, nameFor } = useHazardDetail(iso3, level);
+  const { t } = useT();
 
-  if (loading) return <p className="empty">Loading admin-{level} detail…</p>;
-  if (!detail) return <p className="empty">No subnational detail for {iso3}.</p>;
+  if (loading) return <p className="empty">{t("bars.loading", { level })}</p>;
+  if (!detail) return <p className="empty">{t("bars.noCountry", { iso3 })}</p>;
 
   const block = detail.indicators[indicator];
   if (!block) {
     return (
       <p className="empty">
-        No {HAZARD_LABELS[indicator] ?? indicator} data for {iso3}.
+        {t("bars.noIndicator", { indicator: HAZARD_LABELS[indicator] ?? indicator, iso3 })}
       </p>
     );
   }
@@ -54,8 +56,12 @@ export default function HazardAreas({
   return (
     <>
       <p className="note">
-        Top {Math.min(TOP_N, all.length)} of {detail.areas.length} admin-{level} areas in{" "}
-        {iso3} · click a bar to find it on the map
+        {t("bars.top", {
+          n: Math.min(TOP_N, all.length),
+          total: detail.areas.length,
+          level,
+          iso3,
+        })}
       </p>
       <RankedBars
         rows={rows}

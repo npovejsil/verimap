@@ -20,7 +20,17 @@ export function seriesColor(i: number, dark = false): string {
   return slots[Math.min(i, slots.length - 1)];
 }
 
-export const NO_DATA = "#e6e6e2";
+/** Absent data, not a low value.
+ *
+ *  Kept neutral (chroma ~1.4) so it reads as "no reading exists" rather than as
+ *  another step on the blue ramp, and deliberately strong: the previous value
+ *  (#e6e6e2) sat OKLab dE 3.7 from the map background and 4.9 from the palest
+ *  data step, which made 38 unpainted countries effectively invisible. White
+ *  fails the same way (dE 4.1) because the background is near-white.
+ *  This sits 27.7 from the background, 13.5 from the nearest data step and
+ *  31.7 from the white borders -- while staying lighter than the dark end of
+ *  the ramp, so absence never outranks the highest values. */
+export const NO_DATA = "#9a9a90";
 export const NO_DATA_DARK = "#383835";
 
 /** Class breaks for the choropleth.

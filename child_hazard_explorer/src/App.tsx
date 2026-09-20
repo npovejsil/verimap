@@ -5,8 +5,6 @@ import StatRow, { type Stat } from "./StatRow";
 import WorldMap, { type AreaLayer, type AreaStatus } from "./WorldMap";
 import RankedBars, { type Row } from "./RankedBars";
 import {
-  HAZARD_LABELS,
-  HAZARD_MEASURE,
   HAZARD_METRICS,
   areaFacts,
   areaValues,
@@ -18,7 +16,9 @@ import SourcePanel from "./SourcePanel";
 import { fieldFor, loadProvenance, type Provenance } from "./data/provenance";
 import { useHazardDetail } from "./useHazardDetail";
 import { useStore, type Places } from "./store";
-import { SEQUENTIAL, formatValue, quantileBreaks } from "./scale";
+import { LANGUAGES, useT } from "./i18n";
+import { indicatorLabel, measureLabel } from "./i18n/indicators";
+import { NO_DATA, SEQUENTIAL, formatValue, quantileBreaks } from "./scale";
 
 /** Hazard measures are small numbers where the second decimal carries meaning
  *  (0.84 m of flood, 28.03 µg/m³), so they don't go through the choropleth's
@@ -31,7 +31,9 @@ export default function App() {
     places, selected, hazardIndicator, hazardMetric, selectedArea,
     adminLevel, adminLevelAuto,
     setPlaces, clearSelection, togglePlace, setSelectedArea, setAdminLevel,
+    locale, setLocale,
   } = useStore();
+  const { t, n, rtl } = useT();
 
   const [hazard, setHazard] = useState<HazardCountries | null>(null);
   const [units, setUnits] = useState<Record<string, string>>({});
@@ -42,6 +44,8 @@ export default function App() {
   // Without a map there is no other way to pick a country, so the header grows
   // a plain selector instead.
   const [noMap, setNoMap] = useState(false);
+  /** Counted from what the map actually paints, per layer. */
+  const [blank, setBlank] = useState<{ world: number; area: number }>({ world: 0, area: 0 });
 
   useEffect(() => {
     fetch("places.json")
@@ -122,29 +126,29 @@ export default function App() {
   const areaStats: Stat[] = facts
     ? [
         {
-          label: "Exposed children",
+          label: t("stat.exposed"),
           value: facts.exposed === null ? "—" : Math.round(facts.exposed).toLocaleString(),
           source: trace("Exposed children", "sum of children"),
         },
         {
-          label: "Exposure",
+          label: t("stat.exposure"),
           value: facts.pct === null ? "—" : facts.pct.toFixed(1),
           suffix: facts.pct === null ? undefined : "%",
           source: trace("Exposure %", "re-derived from totals"),
         },
         {
-          label: "Children in area",
+          label: t("stat.population"),
           value: facts.pop === null ? "—" : Math.round(facts.pop).toLocaleString(),
           source: trace("Children in area", "sum of children"),
         },
         {
-          label: HAZARD_MEASURE[hazardIndicator] ?? "Hazard (mean)",
+          label: measureLabel(hazardIndicator, t("stat.hazard")),
           value: facts.hazard === null ? "—" : measure(facts.hazard),
           suffix: facts.hazard === null ? undefined : units[hazardIndicator],
           source: trace("Hazard measure", "mean of children"),
         },
         {
-          label: "Exposure class",
+          label: t("stat.class"),
           value: facts.cls === null ? "—" : facts.cls.toFixed(1),
           source: trace("Exposure class", "max of children"),
         },
@@ -152,9 +156,9 @@ export default function App() {
     : [];
 
   const unit = hazardUnit;
-  const title = `${HAZARD_LABELS[hazardIndicator] ?? hazardIndicator} — ${
-    HAZARD_METRICS.find((m) => m.key === hazardMetric)?.label
-  }`;
+  const title = `${indicatorLabel(hazardIndicator, locale)} — ${t(
+    hazardMetric === "pct" ? "metric.pct" : "metric.exposed",
+  )}`;
 
   const nameOfCountry = (dcid: string) => places?.countries[dcid]?.name ?? dcid;
 
@@ -189,29 +193,29 @@ export default function App() {
   );
   const painted = countryValues.size;
   const drilling = areaStatus === "ok" && !!areaLayer;
+  const missing = drilling ? blank.area : blank.world;
 
   return (
-    <div className="app">
+    <div className="app" dir={rtl ? "rtl" : "ltr"}>
       <header className="header">
         <div className="brand">
-          <h1>Child Hazard Explorer</h1>
-          <p className="sub">
-            UNICEF Global Child Hazard Database · children 0–17 · 2025
-          </p>
+          <h1>{t("app.title")}</h1>
+          <p className="sub">{t("app.subtitle")}</p>
         </div>
 
         <div className="controls">
+
           <div className="control grow">
-            <span className="control-label">Selection</span>
+            <span className="control-label">{t("header.selection")}</span>
             <div className="pills">
               {noMap && places && (
                 <select
                   className="country-select"
                   value=""
                   onChange={(e) => e.target.value && togglePlace(e.target.value)}
-                  aria-label="Choose a country"
+                  aria-label={t("header.chooseCountry")}
                 >
-                  <option value="">Choose a country…</option>
+                  <option value="">{t("header.chooseCountry")}</option>
                   {Object.entries(places.countries)
                     .filter(([dcid]) => !selected.includes(dcid))
                     .sort((a, b) => a[1].name.localeCompare(b[1].name))
@@ -222,9 +226,7 @@ export default function App() {
               )}
               {selected.length === 0 ? (
                 <span className="hint">
-                  {noMap
-                    ? "The map is unavailable in this browser — choose a country above."
-                    : "Click a country to open its admin-2 units, then click a unit for detail."}
+                  {t(noMap ? "header.hintNoMap" : "header.hint")}
                 </span>
               ) : (
                 <>
@@ -234,11 +236,26 @@ export default function App() {
                     </button>
                   ))}
                   <button className="pill clear" onClick={clearSelection}>
-                    Clear ({selected.length})
+                    {t("header.clear", { count: selected.length })}
                   </button>
                 </>
               )}
             </div>
+          </div>
+
+          <div className="control lang">
+            <span className="control-label">{t("header.language")}</span>
+            <select
+              className="country-select"
+              value={locale}
+              onChange={(e) => setLocale(e.target.value as typeof locale)}
+              aria-label={t("header.language")}
+              title={t("lang.note")}
+            >
+              {LANGUAGES.map((l) => (
+                <option key={l.code} value={l.code}>{l.label}</option>
+              ))}
+            </select>
           </div>
         </div>
       </header>
@@ -257,17 +274,17 @@ export default function App() {
                   className={adminLevel === 1 ? "on" : ""}
                   onClick={() => setAdminLevel(1, true)}
                 >
-                  Admin 1
+                  {t("level.admin1")}
                 </button>
                 <button
                   className={adminLevel === 2 ? "on" : ""}
                   onClick={() => setAdminLevel(2, true)}
                 >
-                  Admin 2
+                  {t("level.admin2")}
                 </button>
               </div>
             )}
-            {!hazard && !error && <span className="badge">Loading…</span>}
+            {!hazard && !error && <span className="badge">{t("map.loading")}</span>}
             {error && <span className="badge err">{error}</span>}
           </div>
           <WorldMap
@@ -280,10 +297,13 @@ export default function App() {
             onAreaStatus={setAreaStatus}
             onLevelHint={(level) => adminLevelAuto && setAdminLevel(level)}
             onUnsupported={() => setNoMap(true)}
+            onCoverage={(scope, noData) =>
+              setBlank((b) => (b[scope] === noData ? b : { ...b, [scope]: noData }))
+            }
           />
           <div className="legend-row">
             <span className="legend-title">
-              {unit ? `Latest value (${unit})` : "Latest value"}
+              {unit ? t("map.legendTitleUnit", { unit }) : t("map.legendTitle")}
             </span>
             <div className="ramp">
               {SEQUENTIAL.map((c, i) => {
@@ -295,22 +315,26 @@ export default function App() {
                 );
               })}
             </div>
+            {missing > 0 && (
+              <span className="legend-missing">
+                <i style={{ background: NO_DATA }} />
+                {t("map.noData", { count: n(missing) })}
+              </span>
+            )}
             <span className="legend-note">
               {drilling
-                ? `${areaVals.size} admin-${adminLevel} areas in ${drilldownIso} · click one for detail`
-                : `${painted} countries · click one to zoom in`}
+                ? t("map.areas", { count: n(areaVals.size), level: adminLevel, iso3: drilldownIso ?? "" })
+                : t("map.countries", { count: n(painted) })}
             </span>
           </div>
           {areaStatus === "missing" && drilldownIso && (
             <p className="note">
-              No boundaries for {drilldownIso} yet — the map is showing the country
-              outline only. Build them with{" "}
-              <code>python3 etl/build_adm2.py {drilldownIso}</code>.
+              {t("map.noBoundaries", { iso3: drilldownIso ?? "" })}{" "}
+              <code>python3 etl/build_adm2.py {drilldownIso}</code>
             </p>
           )}
           <p className="prov">
-            Source: UNICEF Global Child Hazard Database · children 0–17, 2025 ·
-            boundaries UNICEF GeoRepo (CC BY 4.0)
+            {t("map.source")}
           </p>
         </div>
 
@@ -319,52 +343,46 @@ export default function App() {
             <div className="panel-head">
               <h2>{nameFor(selectedArea)}</h2>
               <button className="linkish" onClick={() => setSelectedArea(null)}>
-                Clear
+                {t("panel.clear")}
               </button>
             </div>
             {facts ? (
               <>
                 <p className="note">
-                  {facts.ucode} · {HAZARD_LABELS[hazardIndicator] ?? hazardIndicator} ·{" "}
+                  {facts.ucode} · {indicatorLabel(hazardIndicator, locale)} ·{" "}
                   {adminLevel === 1 ? (
                     // Admin-1 has no rows in the database; say so, and say how
                     // much of the parent the number actually covers.
                     <>
-                      calculated from {facts.units ?? "?"} of {facts.total ?? "?"} admin-2
-                      units
+                      {t("readout.calculated", {
+                        units: facts.units ?? "?",
+                        total: facts.total ?? "?",
+                      })}
                       {facts.units !== undefined &&
                         facts.total !== undefined &&
                         facts.units < facts.total &&
-                        " — the rest have no record for this indicator"}
+                        t("readout.calculatedRest")}
                     </>
                   ) : (
-                    "as recorded in the database"
+                    t("readout.recorded")
                   )}
                 </p>
                 <StatRow stats={areaStats} />
               </>
             ) : (
               <p className="empty">
-                No {HAZARD_LABELS[hazardIndicator] ?? hazardIndicator} record for this unit.
+                {t("readout.noRecord", { indicator: indicatorLabel(hazardIndicator, locale) })}
               </p>
             )}
           </div>
         )}
 
-        <SourcePanel
-          prov={prov}
-          iso3={drilldownIso}
-          countryName={drilldownIso ? nameOfCountry(`country/${drilldownIso}`) : undefined}
-        />
-
         {drilldownIso && (
           <div className="panel">
             <div className="panel-head">
-              <h2>Subnational detail</h2>
+              <h2>{t("panel.subnational")}</h2>
               <span className="hint">
-                {adminLevel === 1
-                  ? "Admin-1 areas, rolled up from the admin-2 records"
-                  : "Admin-2 units, as the database holds them"}
+                {t(adminLevel === 1 ? "panel.subnationalAdm1" : "panel.subnationalAdm2")}
               </span>
             </div>
             <HazardAreas iso3={drilldownIso} level={adminLevel} />
@@ -374,15 +392,15 @@ export default function App() {
         {selected.length > 1 && (
           <div className="panel">
             <div className="panel-head">
-              <h2>Countries compared</h2>
+              <h2>{t("panel.compared")}</h2>
               <button className="linkish" onClick={() => setShowTable(!showTable)}>
-                {showTable ? "Show chart" : "Show table"}
+                {t(showTable ? "panel.showChart" : "panel.showTable")}
               </button>
             </div>
             {showTable ? (
               <table className="table">
                 <thead>
-                  <tr><th>Country</th><th>Value</th><th>Year</th></tr>
+                  <tr><th>{t("panel.country")}</th><th>{t("panel.value")}</th><th>{t("panel.year")}</th></tr>
                 </thead>
                 <tbody>
                   {[...rows].sort((a, b) => b.value - a.value).map((r) => (
@@ -399,6 +417,13 @@ export default function App() {
             )}
           </div>
         )}
+
+        {/* Reference material: last, after everything it describes. */}
+        <SourcePanel
+          prov={prov}
+          iso3={drilldownIso}
+          countryName={drilldownIso ? nameOfCountry(`country/${drilldownIso}`) : undefined}
+        />
       </main>
     </div>
   );

@@ -13,6 +13,7 @@ import type { Feature, FeatureCollection, Geometry } from "geojson";
 import { colorFor, formatValue, quantileBreaks, NO_DATA } from "./scale";
 import type { AdminLevel } from "./data/hazard";
 import { loadCountryBoundaries } from "./data/boundaries";
+import { useT } from "./i18n";
 
 /** The admin-2 drilldown: one country's units drawn on top of the world.
  *  Keys are versionless ucode stems ("KEN_0012_0003") throughout, because the
@@ -77,6 +78,9 @@ interface Props {
   /** Fired once when the map cannot be built here, so the caller can offer
    *  another way in: selecting a country is otherwise map-click only. */
   onUnsupported?: () => void;
+  /** How many features in the active layer have no value, counted from what is
+   *  actually painted rather than inferred from the value map. */
+  onCoverage?: (scope: "world" | "area", noData: number, total: number) => void;
 }
 
 interface Hover {
@@ -114,7 +118,7 @@ function boundsOf(features: Feature<Geometry>[]): LngLatBounds | null {
 
 export default function WorldMap({
   values, unit, selectedIsos, onSelect, focusIsos, areas, onAreaStatus, onLevelHint,
-  onUnsupported,
+  onUnsupported, onCoverage,
 }: Props) {
   const container = useRef<HTMLDivElement>(null);
   const map = useRef<MapLibreMap | null>(null);
@@ -132,11 +136,14 @@ export default function WorldMap({
   levelHint.current = onLevelHint;
   const unsupported = useRef(onUnsupported);
   unsupported.current = onUnsupported;
+  const coverage = useRef(onCoverage);
+  coverage.current = onCoverage;
   const areaName = useRef(areas?.nameFor);
   areaName.current = areas?.nameFor;
   /** Zoom the current country was fitted at, the baseline for the hint. */
   const baseZoom = useRef<number | null>(null);
 
+  const { t } = useT();
   const [ready, setReady] = useState(false);
   const [noWebgl, setNoWebgl] = useState(false);
   const [areaReady, setAreaReady] = useState(false);
@@ -288,12 +295,15 @@ export default function WorldMap({
   useEffect(() => {
     if (!ready || !geo.current || !map.current) return;
     const breaks = quantileBreaks([...new Set(values.values())]);
+    let blank = 0;
     for (const f of geo.current.features) {
       const iso3 = (f.properties as any)?.iso3;
       const value = values.get(iso3);
+      if (value === undefined) blank++;
       (f.properties as any).__value = value ?? null;
       (f.properties as any).__color = colorFor(value, breaks);
     }
+    coverage.current?.("world", blank, geo.current.features.length);
     (map.current.getSource(SOURCE) as maplibregl.GeoJSONSource)?.setData(geo.current);
   }, [values, ready]);
 
@@ -404,12 +414,15 @@ export default function WorldMap({
   // Recolour the units. Same ramp as the world map, its own class breaks.
   useEffect(() => {
     if (!areaReady || !areaGeo.current || !map.current || !areas) return;
+    let blank = 0;
     for (const f of areaGeo.current.features) {
       const stem = (f.properties as any)?.stem;
       const value = areas.values.get(stem);
+      if (value === undefined) blank++;
       (f.properties as any).__value = value ?? null;
       (f.properties as any).__color = colorFor(value, areas.breaks);
     }
+    coverage.current?.("area", blank, areaGeo.current.features.length);
     (map.current.getSource(AREA_SOURCE) as maplibregl.GeoJSONSource)?.setData(areaGeo.current);
   }, [areas?.values, areas?.breaks, areaReady]);
 
@@ -435,15 +448,9 @@ export default function WorldMap({
     return (
       <div className="map-wrap">
         <div className="map-fallback">
-          <strong>This map needs WebGL</strong>
-          <span>
-            Your browser has it turned off or unavailable. Switching on hardware
-            acceleration, or opening this in another browser, usually fixes it.
-          </span>
-          <span>
-            Everything else on this page still works — pick a country above to see
-            its areas ranked and read the numbers for any one of them.
-          </span>
+          <strong>{t("map.needsWebgl")}</strong>
+          <span>{t("map.webglHelp")}</span>
+          <span>{t("map.webglRest")}</span>
         </div>
       </div>
     );
@@ -456,14 +463,14 @@ export default function WorldMap({
         className="map-reset"
         onClick={() => map.current?.easeTo({ ...HOME, duration: 700 })}
       >
-        Reset view
+        {t("map.reset")}
       </button>
       {hover && (
         <div className="tooltip" style={{ left: hover.x + 12, top: hover.y + 12 }}>
           <strong>{hover.name}</strong>
           <span>
             {hover.value === undefined || hover.value === null
-              ? "No data"
+              ? t("map.noData", { count: "" }).replace(/\s*\(\s*\)\s*$/, "")
               : `${formatValue(hover.value)}${
                   (hover.unit ?? unit) ? ` ${hover.unit ?? unit}` : ""
                 }`}

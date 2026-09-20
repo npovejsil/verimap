@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { SEQUENTIAL, formatValue } from "./scale";
+import { useT } from "./i18n";
 
 export interface Row {
   key: string;
@@ -27,7 +28,8 @@ const VALUE_W = 68;
  *  labelled rather than carrying a value axis. */
 export default function RankedBars({ rows, unit, highlight, onSelect }: Props) {
   const [hover, setHover] = useState<string | null>(null);
-  if (!rows.length) return <p className="empty">No values for this selection.</p>;
+  const { t } = useT();
+  if (!rows.length) return <p className="empty">{t("bars.none")}</p>;
 
   const sorted = [...rows].sort((a, b) => b.value - a.value);
   const max = Math.max(...sorted.map((r) => Math.abs(r.value)), 0) || 1;
