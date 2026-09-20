@@ -12,6 +12,7 @@ provenance rather than picking a winner.
 | `groundtruth_demo.html` | The demo. Self-contained — open it in a browser, no server needed. |
 | `groundtruth_data.json` | Extracted dataset behind the demo. Regenerable; see below. |
 | `.mcp.json` | Wires the MCP server into Claude Code automatically. |
+| `undc.py` | Dependency-free CLI for the same server, for querying outside a Claude session. |
 
 ## The demo
 
@@ -91,10 +92,17 @@ is not yet a committed script; it walks these steps per country:
   answer with other publishers' data without warning. Discover through MCP; use REST only
   for structural paths from identifiers you already hold.
 - **GCHD has no geometry and no names** — only `ref_area` codes like `KEN_0030_0008_V1`.
-  The boundaries behind those codes live in **[GeoRepo](https://georepo.unicef.org/)**, a registry
-  UNICEF runs itself (confirmed by the organisers, 16 Sep 2026). Access is granted per user and the
-  API needs a key you generate from the platform once you hold view rights; the site is SSO-gated,
-  so the API reference is only visible after login. GIS contact: jburdziej@unicef.org.
+  Those are GeoRepo **`ucode`s**. GeoRepo is the boundary registry UNICEF runs itself, and it
+  publishes the identical format (`BRA_0005_0346_V1`), so the join is direct — and its `name` /
+  `name_en` fields supply the missing unit names as well. Two ways in:
+  - **Live API** — <https://georepo.unicef.org>. SSO, viewer access granted per user, then a
+    self-service API key; docs at `/api/v1/docs/` once logged in. GIS contact: jburdziej@unicef.org.
+  - **Public static mirror, no key required** — <https://github.com/unicef-drp/georepo-data>
+    documents GeoJSON exports on Azure Blob under **CC BY 4.0**. Sizes as of 16 Sep 2026:
+    adm0 224 MB, adm1 539 MB, **adm2 1.41 GB**. The file is a FeatureCollection with *one feature
+    per line*, so it streams line by line without being held in memory. Filter `is_latest = true`
+    (every historical version of every boundary is included) and match `adm0_ucode` to scope to one
+    country before touching geometry. EPSG:4326. Attribution required — credit "UNICEF GeoRepo".
 - **Our extracted payload drops `ref_area`.** The PM2.5 records keep `u_val` and `u_pop` as parallel
   arrays with no unit identifier, so there is nothing for a GeoRepo boundary to join against. Adding
   an admin-2 map means re-running the Solr step and carrying the codes through.
