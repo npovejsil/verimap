@@ -55,6 +55,10 @@ body {
 
 .header {
   grid-area: header;
+  /* A grid item defaults to min-width:auto, so the nowrap hint inside pushed
+     the whole header wider than its track and the page scrolled sideways on a
+     phone. Let it shrink and the ellipsis do its job. */
+  min-width: 0;
   display: flex;
   flex-wrap: wrap;
   gap: 14px 22px;
@@ -63,15 +67,28 @@ body {
   background: var(--surface-1);
   border-bottom: 1px solid var(--line);
 }
-.brand { margin-inline-end: auto; }
+.brand { margin-inline-end: auto; min-width: 0; }
+/* Selection and language share one row, and keep sharing it once countries are
+   picked: the controls used to wrap, which pushed the language control onto a
+   second line and grew the header from 69px to 125px just for selecting a
+   country. Labels sit beside their controls rather than above them, which
+   saves the rest. */
 .controls {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: 14px 20px;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 14px 18px;
+  min-width: 0;
 }
-.control { display: flex; flex-direction: column; gap: 5px; }
-.control.grow { flex: 1 1 260px; }
+.control {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+/* Shrinkable, so a long selection never squeezes the language control out. */
+.control.grow { flex: 1 1 auto; min-width: 0; }
 .control-label {
   font-size: 10px;
   letter-spacing: 0.08em;
@@ -100,7 +117,23 @@ body {
 .seg button:hover:not(:disabled) { background: rgba(127, 127, 127, 0.1); }
 .seg button.on { background: var(--accent); color: #fff; }
 .seg button:disabled { opacity: 0.45; cursor: not-allowed; }
-.pills { display: flex; flex-wrap: wrap; gap: 6px; }
+/* Many selected countries scroll sideways instead of stacking into new rows
+   and making the whole header taller. */
+.pills {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  padding-block: 2px;
+}
+.pills .pill { flex: 0 0 auto; }
+.hint {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .header h1 {
   margin: 0;
   font-family: "Roboto Condensed", Roboto, sans-serif;
@@ -123,6 +156,7 @@ body {
 .pill.clear { border-style: dashed; }
 
 .sidebar {
+  min-width: 0;
   grid-area: sidebar;
   background: var(--surface-1);
   border-right: 1px solid var(--line);
@@ -188,7 +222,8 @@ body {
 .variable:hover { text-decoration: underline; }
 .variable.active { font-weight: 700; text-decoration: underline; }
 
-.main { grid-area: main; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
+.main {
+  min-width: 0; grid-area: main; padding: 16px; display: flex; flex-direction: column; gap: 16px; }
 
 .panel {
   background: var(--surface-1);
@@ -279,6 +314,8 @@ body {
   .app { grid-template-columns: 1fr; grid-template-areas: "header" "sidebar" "main"; }
   .sidebar { max-height: 240px; border-right: none; border-bottom: 1px solid var(--line); }
   .brand { margin-inline-end: 0; flex-basis: 100%; }
+  /* One row is not achievable on a phone: let them wrap again down here. */
+  .controls { flex-wrap: wrap; }
   .control.grow { flex-basis: 100%; }
   .map { height: 320px; }
 }
