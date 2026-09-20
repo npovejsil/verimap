@@ -1,7 +1,7 @@
 """Render the priority table: one row per country, one column per score component.
 
-No black box: the composite priority_score is a weighted sum of the
-rank_* columns shown alongside it, and the weights are exposed as sliders
+No black box: the composite priority score is a weighted sum of the
+component columns shown alongside it, and the weights are exposed as sliders
 so the ranking's sensitivity is visible, not hidden.
 """
 
@@ -29,8 +29,8 @@ def render_priority_table(
         )
 
     st.caption(
-        "priority_score is a weighted average of the rank_* columns below — "
-        "sort by any single component to see what's driving the ranking."
+        "The priority score is a weighted average of the columns below — "
+        "sort by any single column to see what's driving the ranking."
     )
 
     display_cols = ["place_name", "priority_score"] + [
@@ -42,9 +42,12 @@ def render_priority_table(
         scored_df[display_cols].reset_index(drop=True),
         use_container_width=True,
         column_config={
+            "place_name": "Country",
             "priority_score": st.column_config.ProgressColumn(
-                "Priority score", min_value=0, max_value=1
+                "Priority", min_value=0, max_value=1
             ),
+            "rank_unserved_pop": "People affected",
+            "rank_stagnation": "Not improving",
         },
     )
 

@@ -1,8 +1,9 @@
-"""Compute whether two indicators can be joined, and how.
+"""Measure how much two indicators agree in coverage, and what that allows.
 
-This is the engine behind the "automatically discovers overlapping keys
-across datasets" pitch. Five independent checks combine into a single
-JoinSpec that gates what the UI is allowed to do with a pair of indicators:
+Five independent checks (place overlap, date overlap, dimension alignment,
+unit family) combine into a single JoinSpec. That spec doubles as both a
+disagreement measurement -- how much place/date/unit coverage two sources
+actually share -- and a gate on what the UI can safely do with the pair:
 plot both, join them, or take their difference.
 """
 
@@ -118,8 +119,9 @@ def compute_join_spec(
         shared_dimensions[dim_name] = DimMatch(lv, rv, canonical)
         if canonical is None and lv != rv:
             warnings.append(
-                f"dimension '{dim_name}': values '{lv}' and '{rv}' did not "
-                "resolve to a shared canonical value"
+                f"Both sources break this category down differently ('{dim_name}'), "
+                "and we couldn't match them up — treat any comparison within "
+                f"'{dim_name}' with caution."
             )
 
     left_only_dims = {
@@ -133,9 +135,10 @@ def compute_join_spec(
     n_shared_places = len(left_places & right_places)
     place_overlap = Overlap(len(left_places), len(right_places), n_shared_places)
     if place_overlap.jaccard < _MIN_PLACE_JACCARD:
+        max_places = max(len(left_places), len(right_places))
         warnings.append(
-            f"place overlap is thin: Jaccard {place_overlap.jaccard:.2f} "
-            f"({n_shared_places} shared of {len(left_places)}/{len(right_places)})"
+            f"Only {n_shared_places} of {max_places} countries are covered by "
+            "both sources — comparisons will be based on a partial set."
         )
     if n_shared_places == 0:
         blockers.append("no places in common")
@@ -146,7 +149,10 @@ def compute_join_spec(
         if shared_years == 0:
             blockers.append("no years in common")
         elif shared_years < _MIN_SHARED_YEARS:
-            warnings.append(f"date overlap is thin: only {shared_years} shared year(s)")
+            warnings.append(
+                f"These sources only overlap in {shared_years} year(s) — most "
+                "of the timeline can't be compared."
+            )
 
     # 4. Unit relation.
     left_family = _unit_family(left.unit, catalog.units)
@@ -159,9 +165,10 @@ def compute_join_spec(
         unit_relation = "incomparable"
     else:
         unit_relation = "unknown"
+        # Maintainer note: unit family unknown for one or both indicators
+        # ('{left.unit}', '{right.unit}') — add to catalog/units.yml.
         warnings.append(
-            f"unit family unknown for one or both indicators "
-            f"('{left.unit}', '{right.unit}') — add to catalog/units.yml"
+            "We don't yet know how to compare these two measurement scales."
         )
 
     # 5. Comparability verdict.
@@ -172,10 +179,12 @@ def compute_join_spec(
     else:
         comparability = "axes_only"
         if unit_relation == "incomparable":
+            left_display = left.unit_display or left.unit
+            right_display = right.unit_display or right.unit
             warnings.append(
-                f"units are incomparable ({left.unit} vs {right.unit}) — "
-                "arithmetic (difference/ratio) is disabled, plotting on "
-                "separate axes is allowed"
+                f"These are measured in different units ({left_display} vs "
+                f"{right_display}), so we can show them side by side but not "
+                "calculate a difference."
             )
 
     return JoinSpec(

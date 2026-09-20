@@ -47,7 +47,7 @@ def render_trend_panel(
             if "place_name" in place_df.columns
             else place_dcid
         )
-        label = f"{name} (saturated)" if place_dcid in saturated_places else name
+        label = f"{name} (already at max)" if place_dcid in saturated_places else name
 
         fig.add_trace(
             go.Scatter(

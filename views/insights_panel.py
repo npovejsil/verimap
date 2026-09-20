@@ -4,6 +4,8 @@ Per design: a coefficient or a cluster label ships together with the
 specific reason it might be misleading, on the same screen, not as a
 footnote elsewhere. This module enforces that pairing structurally --
 there is no render function here that shows a result without its caveat.
+Copy throughout is written for a non-technical reader: no unexplained
+statistics vocabulary in the main flow.
 """
 
 from __future__ import annotations
@@ -25,29 +27,32 @@ def render_convergence(
     citations: list[Citation],
 ) -> None:
     require_citations(citations)
-    st.markdown(f"**Beta-convergence: {indicator_label}, {base_year} → {end_year}**")
+    st.markdown(
+        f"**Are lagging countries catching up?** ({indicator_label}, "
+        f"{base_year}–{end_year})"
+    )
 
     if result is None:
-        st.info(
-            "Not enough places with data in both years to fit a convergence regression."
-        )
+        st.info("Not enough places with data in both years to check for catch-up.")
         return
 
-    cols = st.columns(3)
-    cols[0].metric("β (negative = convergence)", f"{result.beta:.3f}")
-    cols[1].metric(
-        "95% CI",
-        f"[{result.beta_ci_low:.3f}, {result.beta_ci_high:.3f}]",
-    )
-    cols[2].metric("R²", f"{result.r_squared:.2f}")
+    catch_up = "Yes, some catch-up" if result.beta < 0 else "No catch-up detected"
+    st.metric("Catch-up signal", f"{catch_up} ({result.beta:+.2f})")
+
+    with st.expander("Show the statistics behind this"):
+        cols = st.columns(3)
+        cols[0].metric("β (negative = convergence)", f"{result.beta:.3f}")
+        cols[1].metric(
+            "95% CI", f"[{result.beta_ci_low:.3f}, {result.beta_ci_high:.3f}]"
+        )
+        cols[2].metric("R²", f"{result.r_squared:.2f}")
 
     st.warning(
-        f"**Read this coefficient with its ceiling effect**: {result.ceiling_share:.0%} "
-        f"of places are at or near the reporting ceiling in the base or end year. "
-        "A capped metric mechanically produces a negative β even without genuine "
-        "catch-up, and pure noise produces a negative β too (regression to the "
-        "mean / Galton's fallacy). This number is a screening signal, not "
-        "evidence of convergence on its own."
+        f"**Be careful with this**: {result.ceiling_share:.0%} of countries were "
+        "already near the maximum possible score at the start or end of this "
+        "period. When a measurement has a ceiling, it can look like catch-up is "
+        "happening even when it isn't really — so treat this as a hint to look "
+        "closer, not a proven trend."
     )
 
     for c in citations:
@@ -60,34 +65,37 @@ def render_archetypes(
     citations: list[Citation],
 ) -> None:
     require_citations(citations)
-    st.markdown("**Country archetypes**")
+    st.markdown("**Groups of similar countries**")
 
     if result is None:
         st.info("Not enough places with complete data across the selected indicators.")
         return
 
-    st.caption(
-        f"k={result.k_used} clusters chosen by silhouette score "
-        f"({', '.join(f'k={k}: {v:.2f}' for k, v in sorted(result.silhouette_by_k.items()))})."
-    )
+    with st.expander("How we chose the number of groups"):
+        st.caption(
+            f"{result.k_used} groups chosen by silhouette score "
+            f"({', '.join(f'k={k}: {v:.2f}' for k, v in sorted(result.silhouette_by_k.items()))})."
+        )
 
     display_centers = result.cluster_centers.rename(columns=feature_labels)
+    display_centers.index = [f"Group {i + 1}" for i in display_centers.index]
+    display_centers.index.name = "Group"
     st.dataframe(display_centers.round(1), use_container_width=True)
 
     counts = result.labels.value_counts().sort_index()
     fig = px.bar(
-        x=[f"Cluster {i}" for i in counts.index],
+        x=[f"Group {i + 1}" for i in counts.index],
         y=counts.values,
-        labels={"x": "Cluster", "y": "Countries"},
+        labels={"x": "Group", "y": "Countries"},
     )
     st.plotly_chart(fig, use_container_width=True)
 
     st.warning(
-        "**These clusters are descriptive, not causal.** KMeans groups countries "
-        "by statistical similarity on the selected indicators alone -- it knows "
-        "nothing about history, geography, or policy. Treat cluster membership as "
-        "a starting point for investigation, not an explanation, and re-run with "
-        "different features before trusting a narrative label."
+        "**These groups are a starting point, not an answer.** They're based "
+        "only on the numbers we gave it — the computer doesn't know anything "
+        "about each country's history, geography, or politics. Use this to "
+        "prompt questions, not to explain them, and re-run with different "
+        "indicators before trusting a label you put on a group."
     )
 
     for c in citations:

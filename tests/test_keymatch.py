@@ -95,7 +95,7 @@ def test_unresolved_dimension_value_warns() -> None:
     spec = compute_join_spec(left, right, _catalog(), {"country/A"}, {"country/A"})
 
     assert spec.shared_dimensions["URBANIZATION"].canonical is None
-    assert any("did not resolve" in w for w in spec.warnings)
+    assert any("couldn't match them up" in w for w in spec.warnings)
 
 
 def test_incomparable_units_blocks_arithmetic_not_plotting() -> None:
@@ -142,7 +142,7 @@ def test_thin_place_overlap_warns_below_jaccard_threshold() -> None:
     spec = compute_join_spec(left, right, _catalog(), left_places, right_places)
 
     assert spec.place_overlap.jaccard < 0.5
-    assert any("thin" in w for w in spec.warnings)
+    assert any("covered by both sources" in w for w in spec.warnings)
 
 
 def test_thin_date_overlap_warns_below_minimum_years() -> None:
@@ -156,7 +156,7 @@ def test_thin_date_overlap_warns_below_minimum_years() -> None:
     spec = compute_join_spec(left, right, _catalog(), {"country/A"}, {"country/A"})
 
     assert spec.shared_years == 2
-    assert any("thin" in w for w in spec.warnings)
+    assert any("can't be compared" in w for w in spec.warnings)
     assert spec.comparability == "direct"  # thin overlap warns, does not block
 
 

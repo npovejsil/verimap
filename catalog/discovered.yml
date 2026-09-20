@@ -204,3 +204,19 @@ indicators:
     place_coverage: 235
     unit_display: '%'
     provenance_url: https://unstats.un.org/sdgs/dataportal
+  worldbank_elec_access:
+    dcid: worldBank/EG_ELC_ACCS_ZS
+    label: Electricity access (World Bank)
+    source_agency: null
+    code: worldBank/EG_ELC_ACCS_ZS
+    dimensions: {}
+    provenance_id: dc/base/WorldBankDatasets
+    unit: Percent
+    temporal_start: '1990'
+    temporal_end: '2023'
+    value_min: 0.533898532390594
+    value_max: 100
+    facet_count: 1
+    place_coverage: 215
+    unit_display: '%'
+    provenance_url: https://databank.worldbank.org/source/world-development-indicators

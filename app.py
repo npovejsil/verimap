@@ -25,6 +25,7 @@ from recipe.frames import (
 )
 from recipe.geography import audit_join, country_to_continent, fetch_country_geojson
 from recipe.keymatch import compute_join_spec
+from recipe.validation import check_mixed_dates
 from views.bivariate import render_bivariate
 from views.choropleth import render_choropleth
 from views.compatibility import render_compatibility_panel
@@ -43,11 +44,19 @@ def _load_geojson() -> dict:
 
 
 @cached_data(ttl=3600)
+def _load_indicator_point_payload(dcid_key: str):
+    catalog = load_catalog()
+    indicator = catalog.indicators[dcid_key]
+    client = get_client()
+    return client.point_within("Earth", "Country", [indicator.dcid])
+
+
+@cached_data(ttl=3600)
 def _load_indicator_latest(dcid_key: str) -> pd.DataFrame:
     catalog = load_catalog()
     indicator = catalog.indicators[dcid_key]
     client = get_client()
-    payload = client.point_within("Earth", "Country", [indicator.dcid])
+    payload = _load_indicator_point_payload(dcid_key)
     long_df = point_within_to_long(payload, indicator)
     if long_df.empty:
         return long_df
@@ -93,7 +102,7 @@ def main() -> None:
     )
     topic_indicators = catalog.indicators_for_topic(topic_key)
     if not topic_indicators:
-        st.warning(f"No indicators enriched yet for topic '{topic_key}'.")
+        st.warning("No indicators are set up yet for this topic.")
         return
 
     indicator_key = st.sidebar.selectbox(
@@ -182,7 +191,7 @@ def _render_insights_tab(
 ) -> None:  # noqa: ANN001 - avoids import cycle noise
     series_df = _load_indicator_series(indicator.key)
     if series_df.empty or not indicator.temporal_start:
-        st.info("Insights need the full time series, unavailable in offline mode.")
+        st.info("This view needs more historical data than we have loaded right now.")
         return
 
     years_available = sorted(series_df["date"].unique())
@@ -215,9 +224,8 @@ def _render_insights_tab(
 
     if len(feature_frames) < 2:
         st.info(
-            "Country archetypes need at least two enriched indicators in this "
-            "topic. Add another indicator to catalog/indicators.yml and run "
-            "`make enrich` to unlock this."
+            "This view needs at least two indicators set up for this topic — "
+            "there's only one available right now."
         )
         return
 
@@ -246,7 +254,7 @@ def _render_trends_tab(
     )
     series_df = _load_indicator_series(indicator.key)
     if series_df.empty:
-        st.info("Trend view needs the full time series, unavailable in offline mode.")
+        st.info("This view needs more historical data than we have loaded right now.")
         return
     names = (
         long_df.set_index("place_dcid")["place_name"].to_dict()
@@ -255,10 +263,18 @@ def _render_trends_tab(
     )
     series_df = series_df.copy()
     series_df["place_name"] = series_df["place_dcid"].map(names)
+
+    trend_results, saturated_places = fit_trends_excluding_saturated(
+        series_df, ceiling=indicator.saturation_ceiling
+    )
+    trends = {r.place_dcid: r for r in trend_results}
+
     render_trend_panel(
         series_df,
         top_places,
         [citation],
+        trends=trends,
+        saturated_places=set(saturated_places),
         unit_display=indicator.unit_display or indicator.unit,
     )
 
@@ -268,12 +284,12 @@ def _render_coverage_tab(
 ) -> None:  # noqa: ANN001 - Indicator/Citation, avoids import cycle noise
     series_df = _load_indicator_series(indicator.key)
     if series_df.empty:
-        st.info(
-            "Coverage view needs the full time series, unavailable in offline mode."
-        )
+        st.info("This view needs more historical data than we have loaded right now.")
         return
     if not indicator.temporal_start or not indicator.temporal_end:
-        st.info("Coverage view needs an enriched temporal range for this indicator.")
+        st.info(
+            "This view needs a known date range for this indicator, which isn't set up yet."
+        )
         return
 
     names = (
@@ -297,17 +313,76 @@ def _render_gap_analysis_tab(
         return
 
     pop_indicator = catalog.indicators.get("unicef_population")
+    left_dates_finding = check_mixed_dates(
+        _load_indicator_point_payload(indicator.key), indicator.dcid
+    )
+    right_dates_finding = check_mixed_dates(
+        _load_indicator_point_payload(compare_indicator.key), compare_indicator.dcid
+    )
+
+    # Merge on place + date so a country is only compared against itself in
+    # the same reference year; the "date" columns are renamed per-source
+    # rather than dropped, so a mismatch is visible instead of silently
+    # plotting e.g. 2023-World-Bank against 2024-SDG per country.
     merged = (
-        long_df[["place_dcid", "place_name", "value"]]
-        .rename(columns={"value": indicator.key})
+        long_df[["place_dcid", "place_name", "date", "value"]]
+        .rename(columns={"value": indicator.key, "date": f"{indicator.key}_date"})
         .merge(
-            compare_df[["place_dcid", "value"]].rename(
-                columns={"value": compare_indicator.key}
+            compare_df[["place_dcid", "date", "value"]].rename(
+                columns={
+                    "value": compare_indicator.key,
+                    "date": f"{compare_indicator.key}_date",
+                }
             ),
             on="place_dcid",
             how="inner",
         )
     )
+    merged["same_year"] = (
+        merged[f"{indicator.key}_date"] == merged[f"{compare_indicator.key}_date"]
+    )
+    # Units already agree (checked via spec.unit_relation), so the arithmetic
+    # itself is safe regardless of year match -- but a cross-year row is
+    # comparing two different points in time, not two measurements of the
+    # same moment, so `same_year` stays attached as a per-row caveat rather
+    # than gating whether we compute the number at all.
+    if spec.unit_relation in ("same", "same_family"):
+        merged["difference"] = merged[compare_indicator.key] - merged[indicator.key]
+
+    n_cross_year = int((~merged["same_year"]).sum())
+    if left_dates_finding or right_dates_finding or n_cross_year:
+        st.warning(
+            f"⚠️ Comparing across different years: {n_cross_year} of "
+            f"{len(merged)} countries are matched on different reference "
+            f"years between {indicator.label} and {compare_indicator.label} "
+            "(each source reports its own most recent year). Rows below are "
+            "flagged rather than silently treated as the same point in time."
+        )
+
+    _render_disagreement_callout(indicator, compare_indicator, merged)
+
+    with st.expander("See the year-by-year comparison table"):
+        table_cols = [
+            "place_name",
+            f"{indicator.key}_date",
+            indicator.key,
+            f"{compare_indicator.key}_date",
+            compare_indicator.key,
+        ]
+        if "difference" in merged.columns:
+            table_cols.append("difference")
+        st.dataframe(
+            merged[table_cols].sort_values("place_name"),
+            use_container_width=True,
+            column_config={
+                "place_name": "Country",
+                f"{indicator.key}_date": f"{indicator.label} year",
+                indicator.key: indicator.label,
+                f"{compare_indicator.key}_date": f"{compare_indicator.label} year",
+                compare_indicator.key: compare_indicator.label,
+                "difference": "Difference",
+            },
+        )
 
     size_col = None
     if pop_indicator is not None:
@@ -340,6 +415,49 @@ def _render_gap_analysis_tab(
     )
 
 
+_DISAGREEMENT_THRESHOLD_PP = 10.0
+
+
+def _render_disagreement_callout(
+    indicator, compare_indicator, merged: pd.DataFrame
+) -> None:  # noqa: ANN001 - Indicator, avoids import cycle noise
+    """Surface concrete cross-source disagreement, not just a compatibility verdict.
+
+    This is the demo's centerpiece moment for "triage across disagreeing
+    sources": named countries and numbers, written into the view rather than
+    left for a presenter to remember to say out loud.
+    """
+    if "difference" not in merged.columns:
+        return
+    valid = merged.dropna(subset=["difference"])
+    if valid.empty:
+        return
+
+    disagreeing = valid[valid["difference"].abs() > _DISAGREEMENT_THRESHOLD_PP]
+    if disagreeing.empty:
+        return
+
+    worst = disagreeing.reindex(
+        disagreeing["difference"].abs().sort_values(ascending=False).index
+    )
+    top = worst.iloc[0]
+    top_name = top.get("place_name") or top["place_dcid"]
+    year_note = (
+        ""
+        if top["same_year"]
+        else f" ({top[f'{indicator.key}_date']} vs. "
+        f"{top[f'{compare_indicator.key}_date']})"
+    )
+    st.info(
+        f"📊 **{indicator.label} and {compare_indicator.label} disagree by more "
+        f"than {_DISAGREEMENT_THRESHOLD_PP:.0f} percentage points for "
+        f"{len(disagreeing)} countries**, including {top_name}: "
+        f"{top[indicator.key]:.1f}% vs. {top[compare_indicator.key]:.1f}%{year_note} — "
+        "different survey methods and reference years produce different "
+        "answers to the same question."
+    )
+
+
 def _render_priority_section(
     catalog, indicator
 ) -> None:  # noqa: ANN001 - Catalog/Indicator, avoids import cycle noise
@@ -349,8 +467,8 @@ def _render_priority_section(
     pop_series = _load_indicator_series(denom.key)
     if access_series.empty or pop_series.empty:
         st.info(
-            f"Priority scoring for {indicator.label} needs the full time series, "
-            "which isn't available in offline mode."
+            f"Priority scoring for {indicator.label} needs more historical "
+            "data than we have loaded right now."
         )
         return
 
@@ -386,8 +504,12 @@ def _render_priority_section(
         )
 
     st.sidebar.markdown("**Priority score weights**")
-    w_gap = st.sidebar.slider("Weight: unserved population", 0.0, 3.0, 1.0, 0.5)
-    w_stag = st.sidebar.slider("Weight: stagnation", 0.0, 3.0, 1.0, 0.5)
+    w_gap = st.sidebar.slider(
+        "How much to prioritize: people affected", 0.0, 3.0, 1.0, 0.5
+    )
+    w_stag = st.sidebar.slider(
+        "How much to prioritize: not improving", 0.0, 3.0, 1.0, 0.5
+    )
 
     scored = priority_score(
         merged,

@@ -74,11 +74,26 @@ def render_coverage_panel(
     fig.update_layout(height=max(300, min(1200, 12 * len(display_grid))))
     st.plotly_chart(fig, use_container_width=True)
 
-    st.markdown("**Stalest places** (oldest latest-observation year)")
+    st.markdown("**Least up-to-date countries** (oldest latest-reported year)")
     stale_df = pd.DataFrame(
         report.stalest_places, columns=["place_dcid", "latest_year"]
     )
-    st.dataframe(stale_df, use_container_width=True)
+    if "place_name" in long_df.columns:
+        names = long_df.drop_duplicates("place_dcid").set_index("place_dcid")[
+            "place_name"
+        ]
+        resolved = names.reindex(stale_df["place_dcid"])
+        stale_df["place_dcid"] = resolved.where(
+            resolved.notna(), stale_df["place_dcid"]
+        ).values
+    st.dataframe(
+        stale_df,
+        use_container_width=True,
+        column_config={
+            "place_dcid": "Country",
+            "latest_year": "Most recent year reported",
+        },
+    )
 
     if missing_rows:
         csv = pd.DataFrame(missing_rows).to_csv(index=False)

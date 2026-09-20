@@ -64,3 +64,10 @@ indicators:
     topics: [_denominators]
     polarity: neutral
     role: denominator
+
+  worldbank_elec_access:
+    dcid: worldBank/EG_ELC_ACCS_ZS
+    label: Electricity access (World Bank)
+    topics: [energy_access]
+    polarity: higher_is_better
+    saturation_ceiling: 100

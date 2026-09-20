@@ -93,9 +93,10 @@ def render_choropleth(
     )
 
     st.caption(
-        f"{audit.n_matched} of {audit.n_geometries} map features matched · "
-        f"{len(audit.unmatched_observation_places)} observations unmatched"
+        f"{audit.n_matched} of {audit.n_geometries} places on the map have "
+        "data for this indicator."
     )
+    st.caption("⬜ Grey = no data available for this country.")
 
     for c in citations:
         st.caption(f"Source: {c.render()}")

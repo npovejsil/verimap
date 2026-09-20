@@ -26,8 +26,6 @@ class Citation:
 
     def render(self) -> str:
         parts = [self.label]
-        if self.provenance_id:
-            parts.append(f"({self.provenance_id})")
         if self.provenance_url:
             parts.append(f"· {self.provenance_url}")
         if self.unit_display:
