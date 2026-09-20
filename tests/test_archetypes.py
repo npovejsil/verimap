@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pandas as pd
 
-from analytics.archetypes import compute_archetypes
+from analytics.archetypes import compute_archetypes, rank_groups_by_indicator
 
 
 def _two_cluster_df() -> pd.DataFrame:
@@ -52,3 +52,42 @@ def test_drops_rows_with_missing_features() -> None:
     result = compute_archetypes(df, feature_cols=["x", "y"], k_range=range(2, 4))
     assert result is not None
     assert "HIGH0" not in result.labels.index
+
+
+def _centers() -> pd.DataFrame:
+    # cluster 0 has the lowest "access" mean, cluster 1 the highest.
+    return pd.DataFrame({"access": [20.0, 80.0], "other": [5.0, 5.0]}, index=[0, 1])
+
+
+def test_rank_groups_by_indicator_picks_low_mean_for_higher_is_better() -> None:
+    ranking = rank_groups_by_indicator(
+        _centers(), "access", polarity="higher_is_better"
+    )
+    assert ranking is not None
+    assert ranking.worst_cluster == 0
+    assert ranking.worst_value == 20.0
+    assert ranking.best_cluster == 1
+    assert ranking.best_value == 80.0
+
+
+def test_rank_groups_by_indicator_picks_high_mean_for_lower_is_better() -> None:
+    ranking = rank_groups_by_indicator(_centers(), "access", polarity="lower_is_better")
+    assert ranking is not None
+    # for lower_is_better, the HIGH mean is the worst outcome
+    assert ranking.worst_cluster == 1
+    assert ranking.worst_value == 80.0
+    assert ranking.best_cluster == 0
+    assert ranking.best_value == 20.0
+
+
+def test_rank_groups_by_indicator_none_for_neutral_polarity() -> None:
+    assert rank_groups_by_indicator(_centers(), "access", polarity="neutral") is None
+
+
+def test_rank_groups_by_indicator_none_for_unknown_column() -> None:
+    assert (
+        rank_groups_by_indicator(
+            _centers(), "not_a_column", polarity="higher_is_better"
+        )
+        is None
+    )
