@@ -6,6 +6,8 @@ Logic lives in recipe/, analytics/, and views/.
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
+
 import pandas as pd
 import streamlit as st
 
@@ -151,10 +153,22 @@ def main() -> None:
     tab_labels = ["Map", "Trends"]
     if compare_indicator is not None:
         tab_labels.append("Gap analysis")
-    if indicator.denominator and indicator.denominator in catalog.indicators:
+    has_priority_tab = (
+        indicator.denominator and indicator.denominator in catalog.indicators
+    )
+    if has_priority_tab:
         tab_labels.append("Priority")
     tab_labels.append("Coverage")
     tab_labels.append("Insights")
+
+    # Computed above st.tabs() rather than inside the "Priority" tab's `with`
+    # block, so the Insights tab's cross-link to priority rank is an
+    # explicit dependency (a local variable) rather than relying on
+    # Priority's tab body happening to execute first in script order.
+    priority = (
+        _compute_priority_scores(catalog, indicator) if has_priority_tab else None
+    )
+
     tabs = st.tabs(tab_labels)
     tab_map = dict(zip(tab_labels, tabs))
 
@@ -178,17 +192,22 @@ def main() -> None:
 
     if "Priority" in tab_map:
         with tab_map["Priority"]:
-            _render_priority_section(catalog, indicator)
+            _render_priority_section(indicator, priority)
 
     with tab_map["Coverage"]:
         _render_coverage_tab(indicator, long_df, citation)
 
     with tab_map["Insights"]:
-        _render_insights_tab(catalog, topic_key, indicator, long_df, citation)
+        _render_insights_tab(catalog, topic_key, indicator, long_df, citation, priority)
 
 
 def _render_insights_tab(
-    catalog, topic_key: str, indicator, long_df: pd.DataFrame, citation
+    catalog,
+    topic_key: str,
+    indicator,
+    long_df: pd.DataFrame,
+    citation,
+    priority: PriorityBundle | None,
 ) -> None:  # noqa: ANN001 - avoids import cycle noise
     series_df = _load_indicator_series(indicator.key)
     if series_df.empty or not indicator.temporal_start:
@@ -200,6 +219,7 @@ def _render_insights_tab(
         if "place_name" in long_df.columns
         else {}
     )
+    priority_ranks, priority_total = _priority_lookup(priority)
 
     years_available = sorted(series_df["date"].unique())
     base_year, end_year = years_available[0], years_available[-1]
@@ -219,6 +239,8 @@ def _render_insights_tab(
         [citation],
         movers=movers,
         place_names=names,
+        priority_ranks=priority_ranks,
+        priority_total=priority_total,
         total_places=series_df["place_dcid"].nunique(),
     )
 
@@ -280,6 +302,8 @@ def _render_insights_tab(
         [citation],
         group_ranking=group_ranking,
         place_names=names,
+        priority_ranks=priority_ranks,
+        priority_total=priority_total,
     )
 
 
@@ -534,25 +558,40 @@ def _render_disagreement_callout(
     )
 
 
-def _render_priority_section(
-    catalog, indicator
-) -> None:  # noqa: ANN001 - Catalog/Indicator, avoids import cycle noise
+@dataclass(frozen=True)
+class PriorityBundle:
+    scored: pd.DataFrame
+    year: str
+    total_unserved: float
+    notes: tuple[str, ...] = field(default_factory=tuple)
+
+
+def _compute_priority_scores(catalog, indicator) -> PriorityBundle | None:
+    """All of the old _render_priority_section, minus the st.* rendering.
+
+    Split out so this computation can run above st.tabs() and be shared
+    with the Insights tab's priority-rank cross-link, instead of the two
+    tabs depending on an implicit "Priority's `with` block runs first"
+    ordering. The two st.sidebar.slider calls stay here: sidebar placement
+    is independent of where in the script a call runs, so hoisting this
+    doesn't move the sliders.
+
+    Returns None when the indicator has no denominator, no shared years
+    between access/population series, or no series data at all -- the
+    common case for 8 of 9 catalog indicators today.
+    """
     denom = catalog.indicators[indicator.denominator]
 
     access_series = _load_indicator_series(indicator.key)
     pop_series = _load_indicator_series(denom.key)
     if access_series.empty or pop_series.empty:
-        st.info(
-            f"Priority scoring for {indicator.label} needs more historical "
-            "data than we have loaded right now."
-        )
-        return
+        return None
 
     shared_years = sorted(
         set(access_series["date"]) & set(pop_series["date"]), reverse=True
     )
     if not shared_years:
-        return
+        return None
     year = shared_years[0]
 
     access_year = access_series[access_series["date"] == year]
@@ -561,8 +600,10 @@ def _render_priority_section(
     names = client.place_names(list(access_year["place_dcid"]))
     access_year = attach_place_names(access_year, {k: v for k, v in names.items() if v})
     merged, nan_report = unserved_population(access_year, pop_year, access_col="value")
+
+    notes = []
     if nan_report.n_dropped:
-        st.caption(nan_report.message())
+        notes.append(nan_report.message())
 
     results, saturated_places = fit_trends_excluding_saturated(
         access_series, ceiling=indicator.saturation_ceiling
@@ -573,7 +614,7 @@ def _render_priority_section(
     merged = merged.merge(slopes, on="place_dcid", how="left")
     merged["slope"] = merged["slope"].fillna(0.0)
     if saturated_places:
-        st.caption(
+        notes.append(
             f"{len(saturated_places)} places already at/near the saturation "
             f"ceiling ({indicator.saturation_ceiling}) are excluded from the "
             "stagnation component and treated as zero-slope."
@@ -596,11 +637,43 @@ def _render_priority_section(
         weights={"unserved_pop": w_gap, "stagnation": w_stag},
     )
 
-    citation = citation_for_indicator(indicator, as_of=year)
+    return PriorityBundle(
+        scored=scored,
+        year=year,
+        total_unserved=float(merged["unserved_population"].sum()),
+        notes=tuple(notes),
+    )
+
+
+def _priority_lookup(priority: PriorityBundle | None) -> tuple[dict[str, int], int]:
+    """place_dcid -> 1-based priority rank, plus the total ranked, for the
+    Insights-tab cross-link. Empty dict when there's no priority bundle.
+    """
+    if priority is None or priority.scored.empty:
+        return {}, 0
+    ranks = {
+        place_dcid: rank
+        for rank, place_dcid in enumerate(priority.scored["place_dcid"], start=1)
+    }
+    return ranks, len(ranks)
+
+
+def _render_priority_section(indicator, priority: PriorityBundle | None) -> None:
+    if priority is None:
+        st.info(
+            f"Priority scoring for {indicator.label} needs more historical "
+            "data than we have loaded right now."
+        )
+        return
+
+    for note in priority.notes:
+        st.caption(note)
+
+    citation = citation_for_indicator(indicator, as_of=priority.year)
     render_priority_table(
-        scored,
+        priority.scored,
         [citation],
-        headline_total_unserved=merged["unserved_population"].sum(),
+        headline_total_unserved=priority.total_unserved,
     )
 
 
