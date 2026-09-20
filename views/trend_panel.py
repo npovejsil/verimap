@@ -24,13 +24,21 @@ def render_trend_panel(
     saturated_places: set[str] | None = None,
     value_col: str = "value",
     unit_display: str | None = None,
+    total_places: int | None = None,
 ) -> None:
-    """Plot value-over-time lines for the given places, with optional fit lines."""
+    """Plot value-over-time lines for the given places, with optional fit lines.
+
+    `total_places`, when given, renders a "showing N of M countries" caption
+    so a limited selection is never silently mistaken for the full picture.
+    """
     require_citations(citations)
     trends = trends or {}
     saturated_places = saturated_places or set()
 
     st.subheader("Trends over time")
+
+    if total_places is not None:
+        st.caption(f"Showing {len(place_dcids)} of {total_places} countries.")
 
     df = long_df[long_df["place_dcid"].isin(place_dcids)].sort_values("date")
     if df.empty:

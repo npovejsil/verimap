@@ -245,9 +245,11 @@ def _render_trends_tab(
     # Default to the lowest values, not the highest: for a higher_is_better
     # metric like electricity access, the countries furthest behind are the
     # ones where a trend actually matters. The already-saturated places all
-    # look identical near the ceiling and add nothing to the chart.
+    # look identical near the ceiling and add nothing to the chart. This is
+    # only the *default* selection now -- the multiselect below can widen it
+    # to any subset, up to every country, so data is never permanently hidden.
     ascending = indicator.polarity == "higher_is_better"
-    top_places = (
+    default_places = (
         long_df.nsmallest(default_n, "value")["place_dcid"].tolist()
         if ascending
         else long_df.nlargest(default_n, "value")["place_dcid"].tolist()
@@ -257,12 +259,30 @@ def _render_trends_tab(
         st.info("This view needs more historical data than we have loaded right now.")
         return
     names = (
-        long_df.set_index("place_dcid")["place_name"].to_dict()
+        long_df.set_index("place_dcid")["place_name"].dropna().to_dict()
         if "place_name" in long_df.columns
         else {}
     )
     series_df = series_df.copy()
     series_df["place_name"] = series_df["place_dcid"].map(names)
+
+    all_places = sorted(series_df["place_dcid"].unique(), key=lambda d: names.get(d, d))
+    # Keyed per-indicator so switching the sidebar indicator resets the
+    # selection instead of carrying stale place dcids into a new series.
+    selected_places = st.multiselect(
+        "Countries to chart",
+        options=all_places,
+        default=[p for p in default_places if p in all_places],
+        format_func=lambda d: names.get(d, d),
+        key=f"trend_places_{indicator.key}",
+    )
+
+    if not selected_places:
+        st.info(
+            f"Pick at least one country above to see its trend "
+            f"(showing 0 of {len(all_places)} countries)."
+        )
+        return
 
     trend_results, saturated_places = fit_trends_excluding_saturated(
         series_df, ceiling=indicator.saturation_ceiling
@@ -271,11 +291,12 @@ def _render_trends_tab(
 
     render_trend_panel(
         series_df,
-        top_places,
+        selected_places,
         [citation],
         trends=trends,
         saturated_places=set(saturated_places),
         unit_display=indicator.unit_display or indicator.unit,
+        total_places=len(all_places),
     )
 
 
