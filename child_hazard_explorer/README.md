@@ -68,6 +68,11 @@ You need a **browser with WebGL** (the map renders through it) and about
 **4.9 MB** for the first load, then ~0.4–0.7 MB per country you open. No
 account, no API keys, no credentials.
 
+Without WebGL the page does not go blank: the map is replaced by an explanation
+and the header grows a country selector, so the ranked bars and the per-area
+readout still work. Any other unexpected error is caught too, and shows what
+went wrong instead of an empty page.
+
 ### Running it locally
 
 ```bash

@@ -39,6 +39,9 @@ export default function App() {
   const [showTable, setShowTable] = useState(false);
   const [areaStatus, setAreaStatus] = useState<AreaStatus>("off");
   const [prov, setProv] = useState<Provenance | null>(null);
+  // Without a map there is no other way to pick a country, so the header grows
+  // a plain selector instead.
+  const [noMap, setNoMap] = useState(false);
 
   useEffect(() => {
     fetch("places.json")
@@ -201,9 +204,27 @@ export default function App() {
           <div className="control grow">
             <span className="control-label">Selection</span>
             <div className="pills">
+              {noMap && places && (
+                <select
+                  className="country-select"
+                  value=""
+                  onChange={(e) => e.target.value && togglePlace(e.target.value)}
+                  aria-label="Choose a country"
+                >
+                  <option value="">Choose a country…</option>
+                  {Object.entries(places.countries)
+                    .filter(([dcid]) => !selected.includes(dcid))
+                    .sort((a, b) => a[1].name.localeCompare(b[1].name))
+                    .map(([dcid, info]) => (
+                      <option key={dcid} value={dcid}>{info.name}</option>
+                    ))}
+                </select>
+              )}
               {selected.length === 0 ? (
                 <span className="hint">
-                  Click a country to open its admin-2 units, then click a unit for detail.
+                  {noMap
+                    ? "The map is unavailable in this browser — choose a country above."
+                    : "Click a country to open its admin-2 units, then click a unit for detail."}
                 </span>
               ) : (
                 <>
@@ -258,6 +279,7 @@ export default function App() {
             areas={areaLayer}
             onAreaStatus={setAreaStatus}
             onLevelHint={(level) => adminLevelAuto && setAdminLevel(level)}
+            onUnsupported={() => setNoMap(true)}
           />
           <div className="legend-row">
             <span className="legend-title">

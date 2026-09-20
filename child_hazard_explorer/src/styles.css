@@ -403,3 +403,16 @@ body {
   padding: 10px 12px;
   margin: 6px 0;
 }
+
+/* Shown only when the map cannot render, so a country is still selectable. */
+.country-select {
+  font: inherit;
+  font-size: 12px;
+  padding: 5px 8px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--surface-1);
+  color: var(--text-primary);
+  max-width: 260px;
+}
+.boundary { padding: 24px; max-width: 680px; margin: 0 auto; }
