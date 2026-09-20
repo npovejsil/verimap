@@ -1,0 +1,14 @@
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
+.env
+.streamlit/secrets.toml
+cache/*
+!cache/snapshot/
+!cache/snapshot/**
+*.parquet
+!cache/snapshot/*.parquet
+.ipynb_checkpoints/

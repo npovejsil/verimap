@@ -1,0 +1,73 @@
+# Hand-authored catalog entries. Adding a new indicator here (then running
+# `make enrich`) is the whole "no new code" story: three required fields plus
+# optional human judgment the API cannot supply. Everything else -- unit,
+# temporal range, place coverage, provenance -- is filled in by
+# scripts/discover_indicators.py --enrich into catalog/discovered.yml.
+version: 1
+indicators:
+  sdg_elec_access:
+    dcid: undata/sdg/EG_ACS_ELEC
+    label: Electricity access
+    topics: [energy_access]
+    polarity: higher_is_better
+    sdg_target: "7.1"
+    saturation_ceiling: 100
+    denominator: unicef_population
+
+  sdg_renew_capacity:
+    dcid: undata/sdg/EG_EGY_RNEW
+    label: Installed renewable capacity
+    topics: [energy_access]
+    polarity: higher_is_better
+    sdg_target: "7.2"
+
+  sdg_renew_share:
+    dcid: undata/sdg/EG_FEC_RNEW
+    label: Renewable share of energy consumption
+    topics: [energy_access]
+    polarity: higher_is_better
+    sdg_target: "7.2"
+
+  sdg_energy_intensity:
+    dcid: undata/sdg/EG_EGY_PRIM
+    label: Energy intensity of primary energy
+    topics: [energy_access]
+    polarity: lower_is_better
+    sdg_target: "7.3"
+
+  who_clean_cooking:
+    dcid: undata/who/COOKFUEL_PROP.COOK_FUEL--CLEAN
+    label: Clean cooking fuel reliance
+    topics: [energy_access]
+    polarity: higher_is_better
+    sdg_target: "7.1"
+    saturation_ceiling: 100
+
+  sdg_safe_water:
+    dcid: undata/sdg/SH_H2O_SAFE
+    label: Safely managed drinking water
+    topics: [water_sanitation]
+    polarity: higher_is_better
+    sdg_target: "6.1"
+    saturation_ceiling: 100
+
+  sdg_forest_area:
+    dcid: undata/sdg/AG_LND_FRST
+    label: Forest area (% of land)
+    topics: [land_forests]
+    polarity: higher_is_better
+    sdg_target: "15.1"
+
+  unicef_population:
+    dcid: undata/unicef/DM_POP
+    label: Total population
+    topics: [_denominators]
+    polarity: neutral
+    role: denominator
+
+  worldbank_elec_access:
+    dcid: worldBank/EG_ELC_ACCS_ZS
+    label: Electricity access (World Bank)
+    topics: [energy_access]
+    polarity: higher_is_better
+    saturation_ceiling: 100

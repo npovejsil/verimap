@@ -1,0 +1,222 @@
+version: 1
+indicators:
+  sdg_elec_access:
+    dcid: undata/sdg/EG_ACS_ELEC
+    label: Electricity access
+    source_agency: sdg
+    code: EG_ACS_ELEC
+    dimensions: {}
+    provenance_id: undata/p/SDG
+    unit: Percent
+    temporal_start: '2000'
+    temporal_end: '2024'
+    value_min: 0.8
+    value_max: 100
+    facet_count: 1
+    place_coverage: 217
+    unit_display: '%'
+    provenance_url: https://unstats.un.org/sdgs/dataportal
+  sdg_renew_capacity:
+    dcid: undata/sdg/EG_EGY_RNEW
+    label: Installed renewable capacity
+    source_agency: sdg
+    code: EG_EGY_RNEW
+    dimensions: {}
+    provenance_id: undata/p/SDG
+    unit: undata/UNIT_MEASURE-RATIO_POWER_W_PER_POP
+    temporal_start: '2000'
+    temporal_end: '2024'
+    value_min: 0
+    value_max: 8187.84445
+    facet_count: 1
+    place_coverage: 221
+    unit_display: Watts per capita
+    provenance_url: https://unstats.un.org/sdgs/dataportal
+  sdg_renew_share:
+    dcid: undata/sdg/EG_FEC_RNEW
+    label: Renewable share of energy consumption
+    source_agency: sdg
+    code: EG_FEC_RNEW
+    dimensions: {}
+    provenance_id: undata/p/SDG
+    unit: Percent
+    temporal_start: '1990'
+    temporal_end: '2024'
+    value_min: 0
+    value_max: 98.34
+    facet_count: 1
+    place_coverage: 230
+    unit_display: '%'
+    provenance_url: https://unstats.un.org/sdgs/dataportal
+  sdg_energy_intensity:
+    dcid: undata/sdg/EG_EGY_PRIM
+    label: Energy intensity of primary energy
+    source_agency: sdg
+    code: EG_EGY_PRIM
+    dimensions: {}
+    provenance_id: undata/p/SDG
+    unit: undata/UNIT_MEASURE-RATIO_ENERGY_MJ_PER_CR_USD_PPP2011
+    temporal_start: '1990'
+    temporal_end: '2024'
+    value_min: 0
+    value_max: 50.99
+    facet_count: 1
+    place_coverage: 206
+    unit_display: Megajoules per US dollar at purchasing power parity of 2011
+    provenance_url: https://unstats.un.org/sdgs/dataportal
+  who_clean_cooking:
+    dcid: undata/who/COOKFUEL_PROP.COOK_FUEL--CLEAN
+    label: Clean cooking fuel reliance
+    source_agency: who
+    code: COOKFUEL_PROP
+    dimensions:
+      COOK_FUEL: CLEAN
+    provenance_id: undata/p/WHO
+    unit: undata/UNIT_MEASURE-PT_POP
+    temporal_start: '2000'
+    temporal_end: '2024'
+    value_min: 0
+    value_max: 100
+    facet_count: 1
+    place_coverage: 194
+    unit_display: Percent of population
+    provenance_url: https://www.who.int/data
+  sdg_safe_water:
+    dcid: undata/sdg/SH_H2O_SAFE
+    label: Safely managed drinking water
+    source_agency: sdg
+    code: SH_H2O_SAFE
+    dimensions: {}
+    provenance_id: undata/p/SDG
+    unit: Percent
+    temporal_start: '2000'
+    temporal_end: '2024'
+    value_min: 1.283958435
+    value_max: 100
+    facet_count: 1
+    place_coverage: 163
+    unit_display: '%'
+    provenance_url: https://unstats.un.org/sdgs/dataportal
+  unicef_population:
+    dcid: undata/unicef/DM_POP
+    label: Total population
+    source_agency: unicef
+    code: DM_POP
+    dimensions: {}
+    provenance_id: undata/p/UNICEF
+    unit: undata/UNIT_MEASURE-COUNT_PERSONS
+    temporal_start: '2000'
+    temporal_end: '2025'
+    value_min: 496
+    value_max: 8197546755
+    facet_count: 1
+    place_coverage: 232
+    unit_display: Persons
+    provenance_url: https://data.unicef.org/
+  candidate_ag_lnd_frstmgt_sdg:
+    dcid: undata/sdg/AG_LND_FRSTMGT
+    label: Proportion of forest area with a long-term management plan
+    source_agency: sdg
+    code: AG_LND_FRSTMGT
+    dimensions: {}
+    status: candidate
+  candidate_ag_lnd_frstn_sdg:
+    dcid: undata/sdg/AG_LND_FRSTN
+    label: Forest area
+    source_agency: sdg
+    code: AG_LND_FRSTN
+    dimensions: {}
+    status: candidate
+  candidate_ag_lnd_frstcert_sdg:
+    dcid: undata/sdg/AG_LND_FRSTCERT
+    label: Forest area certified under an independently verified certification scheme
+    source_agency: sdg
+    code: AG_LND_FRSTCERT
+    dimensions: {}
+    status: candidate
+  candidate_ag_lnd_frst_sdg:
+    dcid: undata/sdg/AG_LND_FRST
+    label: Forest area as a proportion of total land area
+    source_agency: sdg
+    code: AG_LND_FRST
+    dimensions: {}
+    status: candidate
+  candidate_emp_temp_nb_ilo:
+    dcid: undata/ilo/EMP_TEMP_NB.ECONOMIC_ACTIVITY--ISIC3_A02__SEX--F
+    label: Employment (previous ILO definition - ICLS13) [Economic activity=Forestry,
+      logging and related service activities (ISIC3 - A02), Sex=Female]
+    source_agency: ilo
+    code: EMP_TEMP_NB
+    dimensions:
+      ECONOMIC_ACTIVITY: ISIC3_A02
+      SEX: F
+    status: candidate
+  candidate_ag_lnd_frstchg_sdg:
+    dcid: undata/sdg/AG_LND_FRSTCHG
+    label: Annual forest area change rate
+    source_agency: sdg
+    code: AG_LND_FRSTCHG
+    dimensions: {}
+    status: candidate
+  candidate_ag_lnd_frstbiopha_sdg:
+    dcid: undata/sdg/AG_LND_FRSTBIOPHA
+    label: Above-ground biomass in forest
+    source_agency: sdg
+    code: AG_LND_FRSTBIOPHA
+    dimensions: {}
+    status: candidate
+  candidate_ag_lnd_frstprct_sdg:
+    dcid: undata/sdg/AG_LND_FRSTPRCT
+    label: Proportion of forest area within legally established protected areas
+    source_agency: sdg
+    code: AG_LND_FRSTPRCT
+    dimensions: {}
+    status: candidate
+  candidate_er_mtn_grncov_sdg:
+    dcid: undata/sdg/ER_MTN_GRNCOV.LAND_COVER--TRE
+    label: Area of mountain green cover [Land cover type=Tree-covered areas]
+    source_agency: sdg
+    code: ER_MTN_GRNCOV
+    dimensions:
+      LAND_COVER: TRE
+    status: candidate
+  candidate_er_mtn_grncvi_sdg:
+    dcid: undata/sdg/ER_MTN_GRNCVI.LAND_COVER--TRE
+    label: Mountain Green Cover Index [Land cover type=Tree-covered areas]
+    source_agency: sdg
+    code: ER_MTN_GRNCVI
+    dimensions:
+      LAND_COVER: TRE
+    status: candidate
+  sdg_forest_area:
+    dcid: undata/sdg/AG_LND_FRST
+    label: Forest area (% of land)
+    source_agency: sdg
+    code: AG_LND_FRST
+    dimensions: {}
+    provenance_id: undata/p/SDG
+    unit: Percent
+    temporal_start: '1990'
+    temporal_end: '2025'
+    value_min: 0
+    value_max: 97.86
+    facet_count: 1
+    place_coverage: 235
+    unit_display: '%'
+    provenance_url: https://unstats.un.org/sdgs/dataportal
+  worldbank_elec_access:
+    dcid: worldBank/EG_ELC_ACCS_ZS
+    label: Electricity access (World Bank)
+    source_agency: null
+    code: worldBank/EG_ELC_ACCS_ZS
+    dimensions: {}
+    provenance_id: dc/base/WorldBankDatasets
+    unit: Percent
+    temporal_start: '1990'
+    temporal_end: '2023'
+    value_min: 0.533898532390594
+    value_max: 100
+    facet_count: 1
+    place_coverage: 215
+    unit_display: '%'
+    provenance_url: https://databank.worldbank.org/source/world-development-indicators
