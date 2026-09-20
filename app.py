@@ -9,6 +9,7 @@ from __future__ import annotations
 import pandas as pd
 import streamlit as st
 
+from analytics.anomalies import detect_anomalies
 from analytics.archetypes import compute_archetypes
 from analytics.convergence import compute_convergence
 from analytics.coverage import compute_coverage
@@ -289,6 +290,14 @@ def _render_trends_tab(
     )
     trends = {r.place_dcid: r for r in trend_results}
 
+    # Anomaly detection runs over the FULL panel, not just the countries
+    # currently selected -- an unusual movement in an unplotted country
+    # must still surface (see analytics/anomalies.py and the summary table
+    # in render_trend_panel).
+    anomalies = detect_anomalies(
+        series_df, polarity=indicator.polarity, trend_results=trend_results
+    )
+
     render_trend_panel(
         series_df,
         selected_places,
@@ -297,6 +306,8 @@ def _render_trends_tab(
         saturated_places=set(saturated_places),
         unit_display=indicator.unit_display or indicator.unit,
         total_places=len(all_places),
+        anomalies=anomalies,
+        place_names=names,
     )
 
 
