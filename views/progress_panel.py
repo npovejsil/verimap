@@ -16,6 +16,7 @@ import streamlit as st
 
 from analytics.progress import ProgressResult
 from recipe.attribution import Citation, require_citations
+from views.palette import active_tokens, apply_chart_chrome
 
 
 def render_progress_panel(
@@ -42,8 +43,11 @@ def render_progress_panel(
             "target line to plot against -- the trend is still shown below."
         )
 
+    tok = active_tokens()
     fig = go.Figure()
-    for place_dcid in place_dcids:
+    # Hues assigned in fixed slot order, never cycled -- see views/palette.py:
+    # the same country keeps its colour whatever else is on screen.
+    for slot, place_dcid in enumerate(place_dcids):
         place_df = df[df["place_dcid"] == place_dcid]
         if place_df.empty:
             continue
@@ -52,12 +56,15 @@ def render_progress_panel(
             if "place_name" in place_df.columns
             else place_dcid
         )
+        color = tok.categorical[slot % len(tok.categorical)]
         fig.add_trace(
             go.Scatter(
                 x=place_df["date"].astype(int),
                 y=place_df["value"],
                 mode="lines+markers",
                 name=name,
+                line=dict(color=color, width=2),
+                marker=dict(size=8, color=color, line=dict(width=2, color=tok.surface)),
             )
         )
 
@@ -70,19 +77,18 @@ def render_progress_panel(
         fig.add_hline(
             y=target_value,
             line_dash="dash",
-            line_color="gray",
+            line_color=tok.muted,
             annotation_text=target_label,
             annotation_position="top left",
         )
     if target_year is not None:
-        fig.add_vline(x=target_year, line_dash="dot", line_color="gray")
+        fig.add_vline(x=target_year, line_dash="dot", line_color=tok.muted)
 
     fig.update_layout(
         yaxis_title=unit_display or "value",
         xaxis_title="Year",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02),
-        margin=dict(t=60),
     )
+    apply_chart_chrome(fig, tok)
     st.plotly_chart(fig, use_container_width=True)
 
     _render_summary_table(df, place_dcids, progress, target_value, target_year)
