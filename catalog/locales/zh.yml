@@ -29,6 +29,7 @@ ui:
 
   tab.map: "地图"
   tab.trends: "趋势"
+  tab.progress: "进展"
   tab.gap: "差距分析"
   tab.priority: "优先级"
   tab.coverage: "数据覆盖"

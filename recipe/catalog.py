@@ -39,6 +39,8 @@ class Indicator:
     role: str | None = None
     # Which API this indicator is pulled from; see catalog/sources.yml.
     source: str = "un_datacommons"
+    target_value: float | None = None
+    target_year: int | None = None
 
     # Enriched fields (blank until `make enrich` has run)
     source_agency: str | None = None
@@ -164,6 +166,8 @@ def load_catalog(catalog_dir: Path = CATALOG_DIR) -> Catalog:
             denominator=merged.get("denominator"),
             role=merged.get("role"),
             source=source,
+            target_value=merged.get("target_value"),
+            target_year=merged.get("target_year"),
             source_agency=enrichment.get("source_agency"),
             code=enrichment.get("code"),
             dimensions=enrichment.get("dimensions", {}),

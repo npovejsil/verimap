@@ -3,6 +3,13 @@
 # optional human judgment the API cannot supply. Everything else -- unit,
 # temporal range, place coverage, provenance -- is filled in by
 # scripts/discover_indicators.py --enrich into catalog/discovered.yml.
+#
+# target_value/target_year are optional and only set where the SDG target is
+# a fixed number everyone converges on (e.g. "universal access" == 100% by
+# 2030). Targets phrased as "substantially increase" or "double the rate"
+# have no single numeric value, so those indicators are left without one --
+# the Progress tab shows their trend without a target line rather than
+# inventing a number.
 version: 1
 indicators:
   sdg_elec_access:
@@ -13,6 +20,8 @@ indicators:
     sdg_target: "7.1"
     saturation_ceiling: 100
     denominator: unicef_population
+    target_value: 100
+    target_year: 2030
 
   sdg_renew_capacity:
     dcid: undata/sdg/EG_EGY_RNEW
@@ -42,6 +51,8 @@ indicators:
     polarity: higher_is_better
     sdg_target: "7.1"
     saturation_ceiling: 100
+    target_value: 100
+    target_year: 2030
 
   sdg_safe_water:
     dcid: undata/sdg/SH_H2O_SAFE
@@ -50,6 +61,8 @@ indicators:
     polarity: higher_is_better
     sdg_target: "6.1"
     saturation_ceiling: 100
+    target_value: 100
+    target_year: 2030
 
   sdg_forest_area:
     dcid: undata/sdg/AG_LND_FRST
@@ -71,6 +84,8 @@ indicators:
     topics: [energy_access]
     polarity: higher_is_better
     saturation_ceiling: 100
+    target_value: 100
+    target_year: 2030
 
   # Rural and urban access both live in the `percent` unit family: each is a
   # share of its OWN base population, so `urban - rural` is a meaningful access

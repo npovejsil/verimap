@@ -30,6 +30,7 @@ ui:
 
   tab.map: "Карта"
   tab.trends: "Динамика"
+  tab.progress: "Прогресс"
   tab.gap: "Анализ разрывов"
   tab.priority: "Приоритет"
   tab.coverage: "Охват данных"

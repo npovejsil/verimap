@@ -38,6 +38,7 @@ ui:
 
   tab.map: "الخريطة"
   tab.trends: "الاتجاهات"
+  tab.progress: "التقدم"
   tab.gap: "تحليل الفجوات"
   tab.priority: "الأولوية"
   tab.coverage: "تغطية البيانات"

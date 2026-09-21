@@ -40,6 +40,7 @@ ui:
 
   tab.map: "Map"
   tab.trends: "Trends"
+  tab.progress: "Progress"
   tab.gap: "Gap analysis"
   tab.priority: "Priority"
   tab.coverage: "Coverage"

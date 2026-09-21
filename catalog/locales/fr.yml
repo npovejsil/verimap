@@ -31,6 +31,7 @@ ui:
 
   tab.map: "Carte"
   tab.trends: "Tendances"
+  tab.progress: "Progression"
   tab.gap: "Analyse des écarts"
   tab.priority: "Priorité"
   tab.coverage: "Couverture"
