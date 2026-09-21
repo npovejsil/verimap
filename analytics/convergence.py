@@ -11,7 +11,7 @@ ship with both caveats attached, not as a footnote.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import pandas as pd
 import statsmodels.api as sm
@@ -26,6 +26,12 @@ class ConvergenceResult:
     r_squared: float
     # share of places within tolerance of the ceiling at either year
     ceiling_share: float
+    # place_dcid, base_value, end_value, change -- one row per place with
+    # both years observed. Added after the aggregate beta so the UI can
+    # name actual countries, not just report one coefficient. Defaulted to
+    # an empty frame so existing construction (and the four tests that
+    # predate this field) keep working unchanged.
+    per_place: pd.DataFrame = field(default_factory=pd.DataFrame)
 
 
 def compute_convergence(
@@ -76,4 +82,60 @@ def compute_convergence(
         beta_ci_high=float(ci_high),
         r_squared=r_squared,
         ceiling_share=ceiling_share,
+        per_place=merged[["place_dcid", "base_value", "end_value", "change"]].copy(),
+    )
+
+
+@dataclass(frozen=True)
+class ConvergenceMovers:
+    catching_up: pd.DataFrame  # place_dcid, base_value, end_value, change, improvement
+    falling_behind: pd.DataFrame
+    n_behind: int  # size of the "behind at base year" pool both lists are drawn from
+    behind_threshold: float  # median base_value used as the "behind" cutoff
+
+
+def rank_convergence_movers(
+    result: ConvergenceResult,
+    polarity: str,
+    top_n: int = 5,
+) -> ConvergenceMovers | None:
+    """Name the laggard countries that moved the most and least.
+
+    "Laggard" and "moved" are both polarity-aware: for a lower_is_better
+    indicator (e.g. energy intensity), being behind means a HIGH base value
+    and improving means `change` going DOWN, not up -- `improvement` is
+    signed so "biggest improvement" always means "closest to the good
+    outcome" regardless of polarity.
+
+    Returns None for `polarity="neutral"` (no well-defined "behind") or
+    when `result.per_place` is empty (e.g. a ConvergenceResult built before
+    this field existed, or one with too few overlapping places).
+    """
+    if polarity not in ("higher_is_better", "lower_is_better"):
+        return None
+    per_place = result.per_place
+    if per_place is None or per_place.empty:
+        return None
+
+    df = per_place.copy()
+    df["improvement"] = (
+        df["change"] if polarity == "higher_is_better" else -df["change"]
+    )
+
+    # "Behind at the base year" means on the bad side of the pack --  low
+    # base value for higher_is_better, high base value for lower_is_better.
+    behind_threshold = float(df["base_value"].median())
+    if polarity == "higher_is_better":
+        behind = df[df["base_value"] <= behind_threshold]
+    else:
+        behind = df[df["base_value"] >= behind_threshold]
+
+    catching_up = behind.sort_values("improvement", ascending=False).head(top_n)
+    falling_behind = behind.sort_values("improvement", ascending=True).head(top_n)
+
+    return ConvergenceMovers(
+        catching_up=catching_up.reset_index(drop=True),
+        falling_behind=falling_behind.reset_index(drop=True),
+        n_behind=len(behind),
+        behind_threshold=behind_threshold,
     )

@@ -80,3 +80,44 @@ def compute_archetypes(
         silhouette_by_k=scores,
         k_used=k,
     )
+
+
+@dataclass(frozen=True)
+class GroupRanking:
+    indicator_key: str
+    worst_cluster: int
+    worst_value: float
+    best_cluster: int
+    best_value: float
+
+
+def rank_groups_by_indicator(
+    cluster_centers: pd.DataFrame,
+    indicator_key: str,
+    polarity: str,
+) -> GroupRanking | None:
+    """Which cluster has the worst (and best) mean on the primary indicator.
+
+    "Worst" is polarity-aware: the lowest mean for higher_is_better, the
+    highest mean for lower_is_better. Returns None for `polarity="neutral"`
+    (no well-defined "worst") or when `indicator_key` isn't a column in
+    `cluster_centers` (e.g. it wasn't one of the clustering features).
+    """
+    if polarity not in ("higher_is_better", "lower_is_better"):
+        return None
+    if indicator_key not in cluster_centers.columns:
+        return None
+
+    means = cluster_centers[indicator_key]
+    if polarity == "higher_is_better":
+        worst_cluster, best_cluster = means.idxmin(), means.idxmax()
+    else:
+        worst_cluster, best_cluster = means.idxmax(), means.idxmin()
+
+    return GroupRanking(
+        indicator_key=indicator_key,
+        worst_cluster=int(worst_cluster),
+        worst_value=float(means.loc[worst_cluster]),
+        best_cluster=int(best_cluster),
+        best_value=float(means.loc[best_cluster]),
+    )

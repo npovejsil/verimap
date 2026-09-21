@@ -6,11 +6,14 @@ Logic lives in recipe/, analytics/, and views/.
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
+
 import pandas as pd
 import streamlit as st
 
-from analytics.archetypes import compute_archetypes
-from analytics.convergence import compute_convergence
+from analytics.anomalies import detect_anomalies
+from analytics.archetypes import compute_archetypes, rank_groups_by_indicator
+from analytics.convergence import compute_convergence, rank_convergence_movers
 from analytics.coverage import compute_coverage
 from analytics.gap_scoring import priority_score, unserved_population
 from analytics.trends import fit_trends_excluding_saturated
@@ -150,15 +153,34 @@ def main() -> None:
     tab_labels = ["Map", "Trends"]
     if compare_indicator is not None:
         tab_labels.append("Gap analysis")
-    if indicator.denominator and indicator.denominator in catalog.indicators:
+    has_priority_tab = (
+        indicator.denominator and indicator.denominator in catalog.indicators
+    )
+    if has_priority_tab:
         tab_labels.append("Priority")
     tab_labels.append("Coverage")
     tab_labels.append("Insights")
+
+    # Computed above st.tabs() rather than inside the "Priority" tab's `with`
+    # block, so the Insights tab's cross-link to priority rank is an
+    # explicit dependency (a local variable) rather than relying on
+    # Priority's tab body happening to execute first in script order.
+    priority = (
+        _compute_priority_scores(catalog, indicator) if has_priority_tab else None
+    )
+
     tabs = st.tabs(tab_labels)
     tab_map = dict(zip(tab_labels, tabs))
 
     with tab_map["Map"]:
-        render_choropleth(geojson, long_df, audit, [citation])
+        render_choropleth(
+            geojson,
+            long_df,
+            audit,
+            [citation],
+            indicator_label=indicator.label,
+            unit_display=indicator.unit_display or indicator.unit,
+        )
 
     with tab_map["Trends"]:
         _render_trends_tab(indicator, long_df, citation)
@@ -177,29 +199,57 @@ def main() -> None:
 
     if "Priority" in tab_map:
         with tab_map["Priority"]:
-            _render_priority_section(catalog, indicator)
+            _render_priority_section(indicator, priority)
 
     with tab_map["Coverage"]:
         _render_coverage_tab(indicator, long_df, citation)
 
     with tab_map["Insights"]:
-        _render_insights_tab(catalog, topic_key, indicator, long_df, citation)
+        _render_insights_tab(catalog, topic_key, indicator, long_df, citation, priority)
 
 
 def _render_insights_tab(
-    catalog, topic_key: str, indicator, long_df: pd.DataFrame, citation
+    catalog,
+    topic_key: str,
+    indicator,
+    long_df: pd.DataFrame,
+    citation,
+    priority: PriorityBundle | None,
 ) -> None:  # noqa: ANN001 - avoids import cycle noise
     series_df = _load_indicator_series(indicator.key)
     if series_df.empty or not indicator.temporal_start:
         st.info("This view needs more historical data than we have loaded right now.")
         return
 
+    names = (
+        long_df.set_index("place_dcid")["place_name"].dropna().to_dict()
+        if "place_name" in long_df.columns
+        else {}
+    )
+    priority_ranks, priority_total = _priority_lookup(priority)
+
     years_available = sorted(series_df["date"].unique())
     base_year, end_year = years_available[0], years_available[-1]
     convergence = compute_convergence(
         series_df, base_year, end_year, ceiling=indicator.saturation_ceiling
     )
-    render_convergence(convergence, indicator.label, base_year, end_year, [citation])
+    movers = (
+        rank_convergence_movers(convergence, polarity=indicator.polarity)
+        if convergence is not None
+        else None
+    )
+    render_convergence(
+        convergence,
+        indicator.label,
+        base_year,
+        end_year,
+        [citation],
+        movers=movers,
+        place_names=names,
+        priority_ranks=priority_ranks,
+        priority_total=priority_total,
+        total_places=series_df["place_dcid"].nunique(),
+    )
 
     st.divider()
 
@@ -209,8 +259,19 @@ def _render_insights_tab(
         if i.enriched and i.key != indicator.key
     ]
     feature_keys = [indicator.key] + [i.key for i in topic_indicators][:2]
+    # place_name travels alongside value so archetype membership can be
+    # named later -- previously this frame carried dcids only, which made
+    # naming cluster membership impossible without a second lookup.
     feature_frames = [
-        long_df[["place_dcid", "value"]].rename(columns={"value": indicator.key})
+        (
+            long_df[["place_dcid", "place_name", "value"]].rename(
+                columns={"value": indicator.key}
+            )
+            if "place_name" in long_df.columns
+            else long_df[["place_dcid", "value"]].rename(
+                columns={"value": indicator.key}
+            )
+        )
     ]
     feature_labels = {indicator.key: indicator.label}
     for other in topic_indicators[:2]:
@@ -235,7 +296,22 @@ def _render_insights_tab(
     used_keys = [k for k in feature_keys if k in merged.columns]
 
     archetypes = compute_archetypes(merged, feature_cols=used_keys)
-    render_archetypes(archetypes, feature_labels, [citation])
+    group_ranking = (
+        rank_groups_by_indicator(
+            archetypes.cluster_centers, indicator.key, polarity=indicator.polarity
+        )
+        if archetypes is not None
+        else None
+    )
+    render_archetypes(
+        archetypes,
+        feature_labels,
+        [citation],
+        group_ranking=group_ranking,
+        place_names=names,
+        priority_ranks=priority_ranks,
+        priority_total=priority_total,
+    )
 
 
 def _render_trends_tab(
@@ -245,9 +321,11 @@ def _render_trends_tab(
     # Default to the lowest values, not the highest: for a higher_is_better
     # metric like electricity access, the countries furthest behind are the
     # ones where a trend actually matters. The already-saturated places all
-    # look identical near the ceiling and add nothing to the chart.
+    # look identical near the ceiling and add nothing to the chart. This is
+    # only the *default* selection now -- the multiselect below can widen it
+    # to any subset, up to every country, so data is never permanently hidden.
     ascending = indicator.polarity == "higher_is_better"
-    top_places = (
+    default_places = (
         long_df.nsmallest(default_n, "value")["place_dcid"].tolist()
         if ascending
         else long_df.nlargest(default_n, "value")["place_dcid"].tolist()
@@ -257,25 +335,54 @@ def _render_trends_tab(
         st.info("This view needs more historical data than we have loaded right now.")
         return
     names = (
-        long_df.set_index("place_dcid")["place_name"].to_dict()
+        long_df.set_index("place_dcid")["place_name"].dropna().to_dict()
         if "place_name" in long_df.columns
         else {}
     )
     series_df = series_df.copy()
     series_df["place_name"] = series_df["place_dcid"].map(names)
 
+    all_places = sorted(series_df["place_dcid"].unique(), key=lambda d: names.get(d, d))
+    # Keyed per-indicator so switching the sidebar indicator resets the
+    # selection instead of carrying stale place dcids into a new series.
+    selected_places = st.multiselect(
+        "Countries to chart",
+        options=all_places,
+        default=[p for p in default_places if p in all_places],
+        format_func=lambda d: names.get(d, d),
+        key=f"trend_places_{indicator.key}",
+    )
+
+    if not selected_places:
+        st.info(
+            f"Pick at least one country above to see its trend "
+            f"(showing 0 of {len(all_places)} countries)."
+        )
+        return
+
     trend_results, saturated_places = fit_trends_excluding_saturated(
         series_df, ceiling=indicator.saturation_ceiling
     )
     trends = {r.place_dcid: r for r in trend_results}
 
+    # Anomaly detection runs over the FULL panel, not just the countries
+    # currently selected -- an unusual movement in an unplotted country
+    # must still surface (see analytics/anomalies.py and the summary table
+    # in render_trend_panel).
+    anomalies = detect_anomalies(
+        series_df, polarity=indicator.polarity, trend_results=trend_results
+    )
+
     render_trend_panel(
         series_df,
-        top_places,
+        selected_places,
         [citation],
         trends=trends,
         saturated_places=set(saturated_places),
         unit_display=indicator.unit_display or indicator.unit,
+        total_places=len(all_places),
+        anomalies=anomalies,
+        place_names=names,
     )
 
 
@@ -458,25 +565,40 @@ def _render_disagreement_callout(
     )
 
 
-def _render_priority_section(
-    catalog, indicator
-) -> None:  # noqa: ANN001 - Catalog/Indicator, avoids import cycle noise
+@dataclass(frozen=True)
+class PriorityBundle:
+    scored: pd.DataFrame
+    year: str
+    total_unserved: float
+    notes: tuple[str, ...] = field(default_factory=tuple)
+
+
+def _compute_priority_scores(catalog, indicator) -> PriorityBundle | None:
+    """All of the old _render_priority_section, minus the st.* rendering.
+
+    Split out so this computation can run above st.tabs() and be shared
+    with the Insights tab's priority-rank cross-link, instead of the two
+    tabs depending on an implicit "Priority's `with` block runs first"
+    ordering. The two st.sidebar.slider calls stay here: sidebar placement
+    is independent of where in the script a call runs, so hoisting this
+    doesn't move the sliders.
+
+    Returns None when the indicator has no denominator, no shared years
+    between access/population series, or no series data at all -- the
+    common case for 8 of 9 catalog indicators today.
+    """
     denom = catalog.indicators[indicator.denominator]
 
     access_series = _load_indicator_series(indicator.key)
     pop_series = _load_indicator_series(denom.key)
     if access_series.empty or pop_series.empty:
-        st.info(
-            f"Priority scoring for {indicator.label} needs more historical "
-            "data than we have loaded right now."
-        )
-        return
+        return None
 
     shared_years = sorted(
         set(access_series["date"]) & set(pop_series["date"]), reverse=True
     )
     if not shared_years:
-        return
+        return None
     year = shared_years[0]
 
     access_year = access_series[access_series["date"] == year]
@@ -485,8 +607,10 @@ def _render_priority_section(
     names = client.place_names(list(access_year["place_dcid"]))
     access_year = attach_place_names(access_year, {k: v for k, v in names.items() if v})
     merged, nan_report = unserved_population(access_year, pop_year, access_col="value")
+
+    notes = []
     if nan_report.n_dropped:
-        st.caption(nan_report.message())
+        notes.append(nan_report.message())
 
     results, saturated_places = fit_trends_excluding_saturated(
         access_series, ceiling=indicator.saturation_ceiling
@@ -497,7 +621,7 @@ def _render_priority_section(
     merged = merged.merge(slopes, on="place_dcid", how="left")
     merged["slope"] = merged["slope"].fillna(0.0)
     if saturated_places:
-        st.caption(
+        notes.append(
             f"{len(saturated_places)} places already at/near the saturation "
             f"ceiling ({indicator.saturation_ceiling}) are excluded from the "
             "stagnation component and treated as zero-slope."
@@ -520,11 +644,43 @@ def _render_priority_section(
         weights={"unserved_pop": w_gap, "stagnation": w_stag},
     )
 
-    citation = citation_for_indicator(indicator, as_of=year)
+    return PriorityBundle(
+        scored=scored,
+        year=year,
+        total_unserved=float(merged["unserved_population"].sum()),
+        notes=tuple(notes),
+    )
+
+
+def _priority_lookup(priority: PriorityBundle | None) -> tuple[dict[str, int], int]:
+    """place_dcid -> 1-based priority rank, plus the total ranked, for the
+    Insights-tab cross-link. Empty dict when there's no priority bundle.
+    """
+    if priority is None or priority.scored.empty:
+        return {}, 0
+    ranks = {
+        place_dcid: rank
+        for rank, place_dcid in enumerate(priority.scored["place_dcid"], start=1)
+    }
+    return ranks, len(ranks)
+
+
+def _render_priority_section(indicator, priority: PriorityBundle | None) -> None:
+    if priority is None:
+        st.info(
+            f"Priority scoring for {indicator.label} needs more historical "
+            "data than we have loaded right now."
+        )
+        return
+
+    for note in priority.notes:
+        st.caption(note)
+
+    citation = citation_for_indicator(indicator, as_of=priority.year)
     render_priority_table(
-        scored,
+        priority.scored,
         [citation],
-        headline_total_unserved=merged["unserved_population"].sum(),
+        headline_total_unserved=priority.total_unserved,
     )
 
 
