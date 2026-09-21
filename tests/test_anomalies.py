@@ -3,8 +3,10 @@ from __future__ import annotations
 import pandas as pd
 
 from analytics.anomalies import (
+    AnomalyScales,
     compute_scales,
     detect_anomalies,
+    detect_interpolated,
     detect_peer_outliers,
     detect_reversals,
     detect_spikes,
@@ -348,3 +350,105 @@ def test_spike_does_not_imply_reversal() -> None:
     jumpy_kinds = {a.kind for a in anomalies if a.place_dcid == "JUMPY"}
     assert "spike" in jumpy_kinds
     assert "reversal" not in jumpy_kinds
+
+
+def _prepared(frames: list[pd.DataFrame]):
+    long_df = pd.concat(frames, ignore_index=True)
+    yoy = year_over_year(long_df)
+    return yoy, compute_scales(yoy)
+
+
+def test_flags_a_straight_line_between_two_anchors() -> None:
+    # A measured 2000 and a measured 2006, with the five intervening years
+    # drawn as a straight line: every step is exactly 2.0.
+    straight = _series("A", [40.0, 42.0, 44.0, 46.0, 48.0, 50.0, 52.0])
+    # Peers that actually wobble, so the pooled scale is not degenerate.
+    noisy_b = _series("B", [30.0, 33.1, 34.4, 38.0, 39.2, 43.6, 44.1])
+    noisy_c = _series("C", [61.0, 62.8, 66.9, 67.4, 71.2, 72.0, 76.3])
+
+    yoy, scales = _prepared([straight, noisy_b, noisy_c])
+    found = detect_interpolated(yoy, scales)
+
+    assert [a.place_dcid for a in found] == ["A"]
+    a = found[0]
+    assert a.kind == "interpolated"
+    assert a.prior_date == "2000"
+    assert a.date == "2006"
+    assert a.score == 6.0  # six identical steps
+    assert "identical steps" in a.detail
+
+
+def test_does_not_flag_a_saturated_series() -> None:
+    # A country pinned at 100% produces a long run of identical ZERO steps.
+    # That is the opposite of this finding and must not fire — the min_step
+    # floor is what keeps it out.
+    saturated = _series("A", [100.0, 100.0, 100.0, 100.0, 100.0, 100.0])
+    noisy_b = _series("B", [30.0, 33.1, 34.4, 38.0, 39.2, 43.6])
+    noisy_c = _series("C", [61.0, 62.8, 66.9, 67.4, 71.2, 72.0])
+
+    yoy, scales = _prepared([saturated, noisy_b, noisy_c])
+    assert detect_interpolated(yoy, scales) == []
+
+
+def test_does_not_flag_a_series_that_wobbles() -> None:
+    wobbly = _series("A", [40.0, 43.2, 44.1, 47.9, 49.0, 53.4])
+    noisy_b = _series("B", [30.0, 33.1, 34.4, 38.0, 39.2, 43.6])
+    noisy_c = _series("C", [61.0, 62.8, 66.9, 67.4, 71.2, 72.0])
+
+    yoy, scales = _prepared([wobbly, noisy_b, noisy_c])
+    assert [a.place_dcid for a in detect_interpolated(yoy, scales)] == []
+
+
+def test_run_shorter_than_min_run_does_not_fire() -> None:
+    # Only two identical steps (2000->2002), then the series breaks pattern.
+    short = _series("A", [40.0, 42.0, 44.0, 51.3, 52.1, 58.9])
+    noisy_b = _series("B", [30.0, 33.1, 34.4, 38.0, 39.2, 43.6])
+    noisy_c = _series("C", [61.0, 62.8, 66.9, 67.4, 71.2, 72.0])
+
+    yoy, scales = _prepared([short, noisy_b, noisy_c])
+    assert [a.place_dcid for a in detect_interpolated(yoy, scales)] == []
+
+
+def test_a_reporting_gap_breaks_the_run() -> None:
+    # Steps of 2.0 either side of a missing 2003. The 2004 change spans two
+    # years, so it is not comparable to a single-year step and must not
+    # extend the run.
+    df = pd.DataFrame(
+        {
+            "place_dcid": ["A"] * 5,
+            "date": ["2000", "2001", "2002", "2004", "2005"],
+            "value": [40.0, 42.0, 44.0, 48.0, 50.0],
+        }
+    )
+    noisy_b = _series("B", [30.0, 33.1, 34.4, 38.0, 39.2, 43.6])
+    noisy_c = _series("C", [61.0, 62.8, 66.9, 67.4, 71.2, 72.0])
+
+    yoy, scales = _prepared([df, noisy_b, noisy_c])
+    assert [a.place_dcid for a in detect_interpolated(yoy, scales)] == []
+
+
+def test_degenerate_pooled_scale_returns_empty_not_everything() -> None:
+    # Every country perfectly flat: pooled_scale is 0, so there is nothing to
+    # calibrate a tolerance against. Must return [], not flag all of them.
+    flat_a = _series("A", [10.0, 10.0, 10.0, 10.0, 10.0])
+    flat_b = _series("B", [20.0, 20.0, 20.0, 20.0, 20.0])
+
+    yoy, scales = _prepared([flat_a, flat_b])
+    assert scales is not None
+    assert detect_interpolated(yoy, scales) == []
+
+
+def test_empty_input_returns_empty() -> None:
+    empty = year_over_year(pd.DataFrame(columns=["place_dcid", "date", "value"]))
+    scales = AnomalyScales(pooled_scale=1.0, magnitude_gate=1.0, n_yoy_rows=0)
+    assert detect_interpolated(empty, scales) == []
+
+
+def test_detect_anomalies_includes_the_new_kind() -> None:
+    straight = _series("A", [40.0, 42.0, 44.0, 46.0, 48.0, 50.0, 52.0])
+    noisy_b = _series("B", [30.0, 33.1, 34.4, 38.0, 39.2, 43.6, 44.1])
+    noisy_c = _series("C", [61.0, 62.8, 66.9, 67.4, 71.2, 72.0, 76.3])
+    long_df = pd.concat([straight, noisy_b, noisy_c], ignore_index=True)
+
+    kinds = {a.kind for a in detect_anomalies(long_df, polarity="higher_is_better")}
+    assert "interpolated" in kinds
