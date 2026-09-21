@@ -63,7 +63,7 @@ Nothing in the response indicates it. Code that labels a chart from
 `entityMetadata` will silently render unlabelled rows for the tail of the
 alphabet. Verify name coverage against the observation set, and resolve any
 missing names separately.
-*shikha/interpolated-detector, 20 September 2026*
+*shikha/ground-truth-demo, 20 September 2026*
 
 **Date range parameters require `date="range"`.** Supplying
 `date_range_start` / `date_range_end` while `date` remains `"latest"` returns
@@ -189,8 +189,8 @@ supply the missing unit names. Two access routes are available:
 
 - **Live API** — <https://georepo.unicef.org>. SSO authentication, viewer
   access granted per user, followed by a self-service API key. Documentation is
-  available at `/api/v1/docs/` after sign-in. GIS contact:
-  jburdziej@unicef.org.
+  available at `/api/v1/docs/` after sign-in. Access is arranged through
+  UNICEF's GIS team.
 - **Public static mirror, no key required** —
   <https://github.com/unicef-drp/georepo-data> documents GeoJSON exports hosted
   on Azure Blob Storage under CC BY 4.0. Sizes as of 16 September 2026: adm0
