@@ -159,8 +159,13 @@ def load_catalog(catalog_dir: Path = CATALOG_DIR) -> Catalog:
             dimensions=enrichment.get("dimensions", {}),
             provenance_id=enrichment.get("provenance_id"),
             provenance_url=enrichment.get("provenance_url"),
-            unit=enrichment.get("unit"),
-            unit_display=enrichment.get("unit_display"),
+            # From `merged`, not `enrichment`: a hand-declared unit must win.
+            # The World Bank API reports unit="" on every observation, so its
+            # indicators declare units in indicators.yml -- and the client reads
+            # indicator.unit to build the facet it returns, so enrichment cannot
+            # be what supplies it without a cycle.
+            unit=merged.get("unit"),
+            unit_display=merged.get("unit_display"),
             temporal_start=enrichment.get("temporal_start"),
             temporal_end=enrichment.get("temporal_end"),
             value_min=enrichment.get("value_min"),

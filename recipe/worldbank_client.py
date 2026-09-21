@@ -225,6 +225,19 @@ class WorldBankClient:
     def _fetch(self, code: str, params: Sequence[tuple[str, str]]) -> list[Any]:
         return self._get(f"/country/all/indicator/{code}", params)
 
+    def raw_observations(
+        self, code: str, most_recent: bool = True
+    ) -> list[dict[str, Any]]:
+        """Unparsed observation rows for one indicator code.
+
+        Exposed for scripts/discover_indicators.py, which needs min/max and
+        temporal range before an Indicator exists to convert rows against.
+        """
+        params = [("per_page", "25000")]
+        if most_recent:
+            params.append(("mrnev", "1"))
+        return self._fetch(code, params)
+
     def _indicator_for(self, dcid: str):  # noqa: ANN001 - Indicator
         """Resolve a dcid to its catalog Indicator, for units and labels.
 

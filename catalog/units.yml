@@ -37,3 +37,29 @@ families:
       - Index
     display: index
     arithmetic: ratio_no_sum
+
+  # The World Bank percentages below get their own families ON PURPOSE. The
+  # key-matcher treats same-family units as safe to subtract, and "% of
+  # electricity output" shares no denominator with "% of population" -- a
+  # country can lose 18% of its output while 98% of its people have access.
+  # Splitting them makes compute_join_spec return "axes_only" for that pair, so
+  # the app plots them side by side but refuses to compute a difference.
+  # Rural and urban access deliberately stay in `percent` together, because
+  # each is a share of its own base and urban minus rural IS the access gap.
+  percent_of_output:
+    members:
+      - worldbank/PCT_OUTPUT
+    display: "% of output"
+    arithmetic: ratio_no_sum
+
+  percent_of_firms:
+    members:
+      - worldbank/PCT_FIRMS
+    display: "% of firms"
+    arithmetic: ratio_no_sum
+
+  kwh_per_capita:
+    members:
+      - worldbank/KWH_PER_CAPITA
+    display: kWh per capita
+    arithmetic: ratio_no_sum
