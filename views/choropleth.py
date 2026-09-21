@@ -76,8 +76,9 @@ def _render_legend(breaks: list[float], unit_display: str | None) -> None:
             )
             st.caption(bin_label(breaks, i, unit_display))
     with cols[n_bins]:
+        r, g, b = NO_DATA_COLOR[:3]
         st.markdown(
-            "<div style='background-color: rgb(229,229,229); "
+            f"<div style='background-color: rgb({r},{g},{b}); "
             "height: 18px; border-radius: 3px;'></div>",
             unsafe_allow_html=True,
         )
@@ -125,7 +126,10 @@ def render_choropleth(
         stroked=True,
         filled=True,
         get_fill_color="properties.fill_color",
-        get_line_color=[80, 80, 80, 60],
+        # Borders carry the country outline when a fill is pale. At 24% alpha
+        # they were effectively invisible, which is the relief a low-contrast
+        # sequential fill depends on.
+        get_line_color=[110, 110, 105, 170],
         line_width_min_pixels=0.5,
     )
     # Web Mercator's basemap tiles are infinite in longitude by default --
@@ -153,6 +157,11 @@ def render_choropleth(
             initial_view_state=view_state,
             views=[view],
             tooltip=tooltip,
+            # A light basemap, because the fill ramp runs light -> dark. On the
+            # default dark basemap the top of the scale sank into the background,
+            # so the countries scoring highest were the hardest ones to see.
+            # No-labels: place names under a choropleth compete with the fill.
+            map_style=pdk.map_styles.LIGHT_NO_LABELS,
         )
     )
 
@@ -172,7 +181,6 @@ def render_choropleth(
         f"{audit.n_matched} of {audit.n_geometries} places on the map have "
         "data for this indicator."
     )
-    st.caption("⬜ Grey = no data available for this country.")
 
     for c in citations:
         st.caption(f"Source: {c.render()}")

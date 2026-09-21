@@ -8,12 +8,19 @@ needs.
 
 from __future__ import annotations
 
-NO_DATA_COLOR = [229, 229, 229, 120]
+# Opaque on purpose. At 47% alpha this picked up whatever basemap sat beneath
+# it, so "grey" in the legend described a colour that never actually rendered.
+# What validates is now what renders.
+NO_DATA_COLOR = [176, 176, 170, 255]  # #b0b0aa, 2.12:1 on the light basemap
 
 # Sequential ramp (low -> high), used when the metric is a level (e.g. % access).
+# ColorBrewer YlOrBr, one hue family, monotonically darkening -- the convention
+# is dark = more. The lightest step is deliberately NOT the palest YlOrBr step
+# (#fff7bc): at 1.06:1 against the basemap it was indistinguishable from "no
+# country here". #fee391 lifts that to 1.23:1 while keeping the ramp monotonic.
 _SEQUENTIAL = [
-    (255, 247, 188),
-    (254, 196, 79),
+    (254, 227, 145),
+    (254, 153, 41),
     (217, 95, 14),
     (153, 52, 4),
 ]
@@ -33,7 +40,7 @@ def _lerp(a: tuple[int, int, int], b: tuple[int, int, int], t: float) -> list[in
 
 
 def sequential_color(
-    value: float, vmin: float, vmax: float, alpha: int = 200
+    value: float, vmin: float, vmax: float, alpha: int = 255
 ) -> list[int]:
     """Map a value in [vmin, vmax] to a color on the sequential ramp."""
     if vmax <= vmin:
@@ -48,7 +55,7 @@ def sequential_color(
 
 
 def diverging_color(
-    value: float, vmin: float, vmax: float, alpha: int = 200
+    value: float, vmin: float, vmax: float, alpha: int = 255
 ) -> list[int]:
     """Map a value in [vmin, vmax] to a color on the diverging ramp, centered at 0."""
     bound = max(abs(vmin), abs(vmax), 1e-9)
@@ -102,7 +109,7 @@ def quantile_breaks(values: list[float], n_bins: int = 5) -> list[float]:
 
 
 def binned_sequential_color(
-    value: float, breaks: list[float], alpha: int = 200
+    value: float, breaks: list[float], alpha: int = 255
 ) -> list[int]:
     """Map a value to one discrete step of the sequential ramp using quantile bins.
 
