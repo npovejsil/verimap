@@ -1,8 +1,17 @@
+# Topics are labels, not gates: the picker lets you select any indicator and
+# compare it against any other, regardless of topic. These group the list and
+# give each indicator a readable bit of context in the dropdown.
 version: 1
 topics:
   energy_access:
-    label: "Energy access & renewables (SDG7)"
+    label: "Energy access (SDG7.1)"
     default_indicators: [sdg_elec_access, who_clean_cooking]
+  energy_supply:
+    label: "Energy generation & mix (SDG7.2)"
+    default_indicators: [sdg_renew_share]
+  energy_delivery:
+    label: "Energy delivery, losses & reliability"
+    default_indicators: []
   water_sanitation:
     label: "Water & sanitation (SDG6)"
     default_indicators: [sdg_safe_water]

@@ -17,21 +17,21 @@ indicators:
   sdg_renew_capacity:
     dcid: undata/sdg/EG_EGY_RNEW
     label: Installed renewable capacity
-    topics: [energy_access]
+    topics: [energy_supply]
     polarity: higher_is_better
     sdg_target: "7.2"
 
   sdg_renew_share:
     dcid: undata/sdg/EG_FEC_RNEW
     label: Renewable share of energy consumption
-    topics: [energy_access]
+    topics: [energy_supply]
     polarity: higher_is_better
     sdg_target: "7.2"
 
   sdg_energy_intensity:
     dcid: undata/sdg/EG_EGY_PRIM
     label: Energy intensity of primary energy
-    topics: [energy_access]
+    topics: [energy_supply]
     polarity: lower_is_better
     sdg_target: "7.3"
 
@@ -68,6 +68,25 @@ indicators:
   worldbank_elec_access:
     dcid: worldBank/EG_ELC_ACCS_ZS
     label: Electricity access (World Bank)
+    topics: [energy_access]
+    polarity: higher_is_better
+    saturation_ceiling: 100
+
+  # Rural and urban access both live in the `percent` unit family: each is a
+  # share of its OWN base population, so `urban - rural` is a meaningful access
+  # gap. Contrast with transmission losses (% of output) and outages (% of
+  # firms), which get their own families precisely so the key-matcher refuses
+  # to subtract them from a share-of-population figure.
+  wb_elec_access_rural:
+    dcid: worldBank/EG_ELC_ACCS_RU_ZS
+    label: Electricity access, rural
+    topics: [energy_access]
+    polarity: higher_is_better
+    saturation_ceiling: 100
+
+  wb_elec_access_urban:
+    dcid: worldBank/EG_ELC_ACCS_UR_ZS
+    label: Electricity access, urban
     topics: [energy_access]
     polarity: higher_is_better
     saturation_ceiling: 100

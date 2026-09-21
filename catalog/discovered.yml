@@ -220,3 +220,35 @@ indicators:
     place_coverage: 215
     unit_display: '%'
     provenance_url: https://databank.worldbank.org/source/world-development-indicators
+  wb_elec_access_rural:
+    dcid: worldBank/EG_ELC_ACCS_RU_ZS
+    label: Electricity access, rural
+    source_agency: null
+    code: worldBank/EG_ELC_ACCS_RU_ZS
+    dimensions: {}
+    provenance_id: dc/base/WorldBankDatasets
+    unit: Percent
+    temporal_start: '1990'
+    temporal_end: '2023'
+    value_min: 0.4
+    value_max: 100
+    facet_count: 1
+    place_coverage: 213
+    unit_display: '%'
+    provenance_url: https://databank.worldbank.org/source/world-development-indicators
+  wb_elec_access_urban:
+    dcid: worldBank/EG_ELC_ACCS_UR_ZS
+    label: Electricity access, urban
+    source_agency: null
+    code: worldBank/EG_ELC_ACCS_UR_ZS
+    dimensions: {}
+    provenance_id: dc/base/WorldBankDatasets
+    unit: Percent
+    temporal_start: '1990'
+    temporal_end: '2023'
+    value_min: 3.5
+    value_max: 100
+    facet_count: 1
+    place_coverage: 213
+    unit_display: '%'
+    provenance_url: https://databank.worldbank.org/source/world-development-indicators
