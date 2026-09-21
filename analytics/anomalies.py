@@ -3,10 +3,10 @@
 Three detector types, each answering a different question about the same
 year-over-year panel:
 
-- spike: is this year's change unusual for THIS country, relative to its own
-  typical year-to-year change?
-- peer_outlier: is this year's change unusual relative to what every OTHER
-  country did that same year?
+- spike: is this change unusual for THIS country, relative to its own
+  typical rate of change?
+- peer_outlier: is this change unusual relative to what every OTHER
+  country did over a comparable period?
 - reversal: does this country's multi-year trend point the wrong way for the
   indicator's polarity, with the direction statistically real (not noise)?
 
@@ -66,8 +66,8 @@ class Anomaly:
 
 @dataclass(frozen=True)
 class AnomalyScales:
-    pooled_scale: float  # robust (MAD-based) scale over all year-over-year changes
-    magnitude_gate: float  # max(pooled_scale, 90th percentile of |change|)
+    pooled_scale: float  # robust (MAD-based) scale over all annualized changes
+    magnitude_gate: float  # max(pooled_scale, 90th pct of |change_per_year|)
     n_yoy_rows: int
 
 
@@ -92,7 +92,13 @@ def year_over_year(
     Uses each place's own previous *observed* year, not necessarily the
     prior calendar year -- a gap in reporting produces a multi-year change
     rather than a fabricated one. Columns: place_dcid, date, value,
-    prior_date, prior_value, change, gap_years.
+    prior_date, prior_value, change, gap_years, change_per_year.
+
+    `change` is the raw difference over whatever interval separates the two
+    observations; `change_per_year` divides it by that interval. Detectors
+    score the annualized rate, because a six-year move and a one-year move
+    are not comparable magnitudes. For an annual series the two columns are
+    identical, since gap_years is 1.
     """
     df = long_df.dropna(subset=[value_col, date_col]).copy()
     if df.empty:
@@ -105,6 +111,7 @@ def year_over_year(
                 "prior_value",
                 "change",
                 "gap_years",
+                "change_per_year",
             ]
         )
     df[date_col] = df[date_col].astype(str)
@@ -114,6 +121,7 @@ def year_over_year(
     df = df.dropna(subset=["prior_value", "prior_date"]).copy()
     df["change"] = df[value_col] - df["prior_value"]
     df["gap_years"] = df[date_col].astype(int) - df["prior_date"].astype(int)
+    df["change_per_year"] = df["change"] / df["gap_years"]
     return df[
         [
             place_col,
@@ -123,6 +131,7 @@ def year_over_year(
             "prior_value",
             "change",
             "gap_years",
+            "change_per_year",
         ]
     ].reset_index(drop=True)
 
@@ -135,13 +144,27 @@ def compute_scales(yoy: pd.DataFrame) -> AnomalyScales | None:
     """
     if len(yoy) < 2:
         return None
-    pooled_scale = robust_scale(yoy["change"])
-    p90 = float(yoy["change"].abs().quantile(0.9))
+    pooled_scale = robust_scale(yoy["change_per_year"])
+    p90 = float(yoy["change_per_year"].abs().quantile(0.9))
     return AnomalyScales(
         pooled_scale=pooled_scale,
         magnitude_gate=max(pooled_scale, p90),
         n_yoy_rows=len(yoy),
     )
+
+
+def _per_year_note(row: pd.Series) -> str:
+    """Parenthetical annual rate, when the change spans more than one year."""
+    if row["gap_years"] <= 1:
+        return ""
+    return f" ({abs(row['change_per_year']):.1f} per year)"
+
+
+def _interval_phrase(row: pd.Series) -> str:
+    """Name the interval: 'in 2019', or 'between 2013 and 2019' across a gap."""
+    if row["gap_years"] <= 1:
+        return f"in {row['date']}"
+    return f"between {row['prior_date']} and {row['date']}"
 
 
 def detect_spikes(
@@ -151,7 +174,7 @@ def detect_spikes(
     min_obs: int = 6,
     top_n: int = 8,
 ) -> list[Anomaly]:
-    """Flag countries whose single-year change is unusual for THAT country.
+    """Flag countries whose rate of change is unusual for THAT country.
 
     Deliberately does not exclude saturated (at-ceiling) countries: a
     country's value can spike or drop sharply even while near a cap (e.g. a
@@ -161,21 +184,24 @@ def detect_spikes(
     if yoy.empty:
         return []
 
-    counts = yoy.groupby("place_dcid")["change"].transform("count")
+    counts = yoy.groupby("place_dcid")["change_per_year"].transform("count")
     eligible = yoy[counts >= min_obs].copy()
     if eligible.empty:
         return []
 
-    place_median = eligible.groupby("place_dcid")["change"].transform("median")
-    place_scale = eligible.groupby("place_dcid")["change"].transform(robust_scale)
+    place_median = eligible.groupby("place_dcid")["change_per_year"].transform("median")
+    place_scale = eligible.groupby("place_dcid")["change_per_year"].transform(
+        robust_scale
+    )
     floored_scale = place_scale.clip(lower=scales.pooled_scale)
     floored_scale = floored_scale.replace(0.0, np.nan)  # avoid /0 if pooled is also 0
 
-    z = (eligible["change"] - place_median).abs() / floored_scale
+    z = (eligible["change_per_year"] - place_median).abs() / floored_scale
     eligible["_z"] = z.fillna(0.0)
 
     candidates = eligible[
-        (eligible["_z"] > k) & (eligible["change"].abs() >= scales.magnitude_gate)
+        (eligible["_z"] > k)
+        & (eligible["change_per_year"].abs() >= scales.magnitude_gate)
     ]
     if candidates.empty:
         return []
@@ -201,8 +227,9 @@ def detect_spikes(
                 score=float(row["_z"]),
                 detail=(
                     f"{direction} by {abs(row['change']):.1f} between "
-                    f"{row['prior_date']} and {row['date']}, much more than this "
-                    "country's usual year-to-year change."
+                    f"{row['prior_date']} and {row['date']}"
+                    f"{_per_year_note(row)}, much more than this "
+                    "country's usual rate of change."
                 ),
             )
         )
@@ -216,27 +243,32 @@ def detect_peer_outliers(
     min_peers: int = 10,
     top_n: int = 8,
 ) -> list[Anomaly]:
-    """Flag countries whose single-year change is unusual relative to peers
-    reporting THAT SAME year.
+    """Flag countries whose rate of change is unusual relative to peers
+    landing on THAT SAME reporting year.
+
+    Peers are grouped by the year a change lands on, but their intervals can
+    differ when reporting is irregular, so the comparison is made on annualized
+    rates rather than raw differences.
     """
     if yoy.empty:
         return []
 
-    year_counts = yoy.groupby("date")["change"].transform("count")
+    year_counts = yoy.groupby("date")["change_per_year"].transform("count")
     eligible = yoy[year_counts >= min_peers].copy()
     if eligible.empty:
         return []
 
-    year_median = eligible.groupby("date")["change"].transform("median")
-    year_scale = eligible.groupby("date")["change"].transform(robust_scale)
+    year_median = eligible.groupby("date")["change_per_year"].transform("median")
+    year_scale = eligible.groupby("date")["change_per_year"].transform(robust_scale)
     floored_scale = year_scale.clip(lower=scales.pooled_scale)
     floored_scale = floored_scale.replace(0.0, np.nan)
 
-    z = (eligible["change"] - year_median).abs() / floored_scale
+    z = (eligible["change_per_year"] - year_median).abs() / floored_scale
     eligible["_z"] = z.fillna(0.0)
 
     candidates = eligible[
-        (eligible["_z"] > k) & (eligible["change"].abs() >= scales.magnitude_gate)
+        (eligible["_z"] > k)
+        & (eligible["change_per_year"].abs() >= scales.magnitude_gate)
     ]
     if candidates.empty:
         return []
@@ -260,8 +292,9 @@ def detect_peer_outliers(
                 change=float(row["change"]),
                 score=float(row["_z"]),
                 detail=(
-                    f"{direction} {abs(row['change']):.1f} in {row['date']}, far more "
-                    "than other countries typically moved that same year."
+                    f"{direction} {abs(row['change']):.1f} "
+                    f"{_interval_phrase(row)}, far more than other countries "
+                    "typically moved over a comparable period."
                 ),
             )
         )
