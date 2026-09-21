@@ -128,13 +128,32 @@ def render_choropleth(
         get_line_color=[80, 80, 80, 60],
         line_width_min_pixels=0.5,
     )
-    view_state = pdk.ViewState(latitude=10, longitude=10, zoom=1.2)
+    # Web Mercator's basemap tiles are infinite in longitude by default --
+    # zooming out far enough makes the CARTO basemap repeat side-by-side
+    # (the "uncanny double-Earth" reported live). Two independent fixes,
+    # verified together in a real browser across scroll-wheel zoom, the
+    # +/- controls, and the default view on load: `repeat=False` on the
+    # MapView stops deck.gl from drawing extra copies of the world, and
+    # `min_zoom` on the same View caps how far any zoom interaction can
+    # push past that point. _START_ZOOM is intentionally below _MIN_ZOOM --
+    # deck.gl clamps the initial render up to the floor, which lands on a
+    # clean single-world view without needing to hand-tune a start value
+    # for every possible viewport width.
+    _START_ZOOM = 1.2
+    _MIN_ZOOM = 3.0
+    view_state = pdk.ViewState(latitude=10, longitude=10, zoom=_START_ZOOM)
+    view = pdk.View(type="MapView", controller=True, repeat=False, min_zoom=_MIN_ZOOM)
     tooltip = {
         "html": "<b>{name}</b><br/>{value}",
         "style": {"backgroundColor": "steelblue", "color": "white"},
     }
     st.pydeck_chart(
-        pdk.Deck(layers=[layer], initial_view_state=view_state, tooltip=tooltip)
+        pdk.Deck(
+            layers=[layer],
+            initial_view_state=view_state,
+            views=[view],
+            tooltip=tooltip,
+        )
     )
 
     _render_legend(breaks, unit_display)
