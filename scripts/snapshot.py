@@ -14,6 +14,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from recipe.catalog import load_catalog
 from recipe.datacommons_client import DataCommonsClient, EmptyResponseError
+from recipe.sources import client_for_indicator
 
 SNAPSHOT_DIR = Path(__file__).resolve().parent.parent / "cache" / "snapshot"
 
@@ -29,8 +30,12 @@ def main() -> None:
 
     all_place_dcids: set[str] = set()
     for key, indicator in catalog.indicators.items():
+        # Each indicator is fetched from whichever API it declares, so the
+        # offline snapshot covers World Bank pulls too. The written shape is
+        # identical either way, which is what lets one offline client serve both.
+        source_client = client_for_indicator(indicator)
         try:
-            payload = client.point_within("Earth", "Country", [indicator.dcid])
+            payload = source_client.point_within("Earth", "Country", [indicator.dcid])
         except EmptyResponseError as exc:
             print(f"  [skip] {key}: {exc}")
             continue
@@ -43,6 +48,8 @@ def main() -> None:
         (SNAPSHOT_DIR / f"point_{key}.json").write_text(json.dumps(out))
         print(f"snapshot: {key} ({len(places)} places)")
 
+    # Resolved via Data Commons, which knows every place dcid; the World
+    # Bank client only knows its own 217 countries.
     names = client.place_names(sorted(all_place_dcids))
     (SNAPSHOT_DIR / "place_names.json").write_text(json.dumps(names))
     print(f"snapshot: place_names ({len(names)} resolved of {len(all_place_dcids)})")

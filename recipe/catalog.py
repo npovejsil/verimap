@@ -37,6 +37,8 @@ class Indicator:
     saturation_ceiling: float | None = None
     denominator: str | None = None
     role: str | None = None
+    # Which API this indicator is pulled from; see catalog/sources.yml.
+    source: str = "un_datacommons"
 
     # Enriched fields (blank until `make enrich` has run)
     source_agency: str | None = None
@@ -52,6 +54,9 @@ class Indicator:
     value_max: float | None = None
     place_coverage: int | None = None
     facet_count: int | None = None
+    # Who actually produced the numbers, which is often not the publisher:
+    # three of the four direct World Bank energy pulls are republished IEA data.
+    upstream_source: str | None = None
     enriched: bool = False
 
 
@@ -71,6 +76,14 @@ class Catalog:
 
     def indicators_for_topic(self, topic_key: str) -> list[Indicator]:
         return [ind for ind in self.indicators.values() if topic_key in ind.topics]
+
+
+def _valid_sources() -> set[str]:
+    """Source ids declared in catalog/sources.yml.
+
+    Read directly rather than via recipe.sources, which imports this module.
+    """
+    return set(load_yaml(CATALOG_DIR / "sources.yml").get("sources", {}))
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -115,6 +128,13 @@ def load_catalog(catalog_dir: Path = CATALOG_DIR) -> Catalog:
                 f"must be one of {_VALID_POLARITIES}"
             )
 
+        source = curated.get("source", "un_datacommons")
+        if source not in _valid_sources():
+            raise CatalogError(
+                f"indicator '{key}' declares unknown source '{source}', "
+                f"must be one of {sorted(_valid_sources())} (see catalog/sources.yml)"
+            )
+
         topic_keys = tuple(curated.get("topics", []))
         for t in topic_keys:
             if t != "_denominators" and t not in topics:
@@ -133,6 +153,7 @@ def load_catalog(catalog_dir: Path = CATALOG_DIR) -> Catalog:
             saturation_ceiling=merged.get("saturation_ceiling"),
             denominator=merged.get("denominator"),
             role=merged.get("role"),
+            source=source,
             source_agency=enrichment.get("source_agency"),
             code=enrichment.get("code"),
             dimensions=enrichment.get("dimensions", {}),
@@ -146,6 +167,7 @@ def load_catalog(catalog_dir: Path = CATALOG_DIR) -> Catalog:
             value_max=enrichment.get("value_max"),
             place_coverage=enrichment.get("place_coverage"),
             facet_count=enrichment.get("facet_count"),
+            upstream_source=enrichment.get("upstream_source"),
             enriched=bool(enrichment),
         )
 

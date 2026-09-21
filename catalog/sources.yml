@@ -1,0 +1,30 @@
+# The declared list of APIs this app pulls from. scripts/verify_sources.py
+# checks every catalog indicator against the source it claims, and the app's
+# Sources tab renders the result.
+#
+# `notes` carries the operational gotchas found while wiring each source up --
+# the things that cost an afternoon to discover and are invisible in the docs.
+version: 1
+sources:
+  un_datacommons:
+    label: UN System Data Commons
+    base_url: https://unsd-datacommons.gcp.un-icc.cloud
+    status: verified
+    verified_on: "2026-09-20"
+    notes: >-
+      Cross-agency SDG/WHO/UNICEF indicators. A nonexistent or misspelled
+      variable id returns HTTP 200 with an empty body rather than a 4xx, so
+      emptiness is raised as an error instead of read as "no data". Query
+      params must be repeated, never comma-joined.
+
+  world_bank:
+    label: World Bank Open Data (WDI)
+    base_url: https://api.worldbank.org/v2
+    status: verified
+    verified_on: "2026-09-20"
+    notes: >-
+      Used only for indicators Data Commons does not carry. /v2/country returns
+      295 rows of which 217 are real countries; the other 78 are regional and
+      income aggregates marked region.id == "NA" and are dropped. Observations
+      always report unit="", so units come from catalog/units.yml. Series are
+      padded to the current year with nulls.

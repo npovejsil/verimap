@@ -21,6 +21,7 @@ from recipe.attribution import citation_for_indicator
 from recipe.cache import cached_data
 from recipe.catalog import load_catalog
 from recipe.datacommons_client import get_client
+from recipe.sources import client_for_indicator
 from recipe.frames import (
     attach_place_names,
     point_within_to_long,
@@ -42,6 +43,7 @@ st.set_page_config(page_title="UN SDG Cross-Agency Dashboard", layout="wide")
 
 @cached_data(ttl=3600)
 def _load_geojson() -> dict:
+    # Geometry is Data Commons only -- the World Bank API serves no shapes.
     client = get_client()
     return fetch_country_geojson(client)
 
@@ -50,7 +52,7 @@ def _load_geojson() -> dict:
 def _load_indicator_point_payload(dcid_key: str):
     catalog = load_catalog()
     indicator = catalog.indicators[dcid_key]
-    client = get_client()
+    client = client_for_indicator(indicator)
     return client.point_within("Earth", "Country", [indicator.dcid])
 
 
@@ -58,7 +60,7 @@ def _load_indicator_point_payload(dcid_key: str):
 def _load_indicator_latest(dcid_key: str) -> pd.DataFrame:
     catalog = load_catalog()
     indicator = catalog.indicators[dcid_key]
-    client = get_client()
+    client = client_for_indicator(indicator)
     payload = _load_indicator_point_payload(dcid_key)
     long_df = point_within_to_long(payload, indicator)
     if long_df.empty:
@@ -71,7 +73,7 @@ def _load_indicator_latest(dcid_key: str) -> pd.DataFrame:
 def _load_indicator_series(dcid_key: str) -> pd.DataFrame:
     catalog = load_catalog()
     indicator = catalog.indicators[dcid_key]
-    client = get_client()
+    client = client_for_indicator(indicator)
     try:
         payload = client.series_within("Earth", "Country", [indicator.dcid])
     except Exception:  # noqa: BLE001 - offline client has no series_within snapshot
@@ -81,6 +83,7 @@ def _load_indicator_series(dcid_key: str) -> pd.DataFrame:
 
 @cached_data(ttl=3600)
 def _load_continent_map() -> dict[str, str]:
+    # Place hierarchy is Data Commons only, same as the geometry above.
     client = get_client()
     try:
         return country_to_continent(client)
@@ -603,7 +606,7 @@ def _compute_priority_scores(catalog, indicator) -> PriorityBundle | None:
 
     access_year = access_series[access_series["date"] == year]
     pop_year = pop_series[pop_series["date"] == year]
-    client = get_client()
+    client = client_for_indicator(indicator)
     names = client.place_names(list(access_year["place_dcid"]))
     access_year = attach_place_names(access_year, {k: v for k, v in names.items() if v})
     merged, nan_report = unserved_population(access_year, pop_year, access_col="value")
