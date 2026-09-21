@@ -263,8 +263,8 @@ indicators:
     upstream_source: IEA Energy Statistics Data Browser
     facet_count: 1
     place_coverage: 150
-    value_min: 0.23
-    value_max: 61.8063
+    value_min: 0.22997250704615
+    value_max: 61.8062946632203
     temporal_start: '2014'
     temporal_end: '2024'
   wb_firm_outages:
@@ -293,8 +293,8 @@ indicators:
     upstream_source: IEA Energy Statistics Data Browser
     facet_count: 1
     place_coverage: 150
-    value_min: 13.717
-    value_max: 48997.9457
+    value_min: 13.7170206589719
+    value_max: 48997.9456981263
     temporal_start: '2014'
     temporal_end: '2024'
   wb_renew_output:

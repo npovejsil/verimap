@@ -21,7 +21,8 @@ from recipe.attribution import citation_for_indicator
 from recipe.cache import cached_data
 from recipe.catalog import load_catalog
 from recipe.datacommons_client import get_client
-from recipe.sources import client_for_indicator
+from recipe.source_checks import check_all_pulls
+from recipe.sources import client_for_indicator, load_sources
 from recipe.frames import (
     attach_place_names,
     point_within_to_long,
@@ -36,6 +37,7 @@ from views.compatibility import render_compatibility_panel
 from views.coverage_panel import render_coverage_panel
 from views.insights_panel import render_archetypes, render_convergence
 from views.priority_table import render_priority_table
+from views.sources_panel import render_sources_panel
 from views.trend_panel import render_trend_panel
 
 st.set_page_config(page_title="UN SDG Cross-Agency Dashboard", layout="wide")
@@ -89,6 +91,11 @@ def _load_continent_map() -> dict[str, str]:
         return country_to_continent(client)
     except Exception:  # noqa: BLE001 - offline client has no place/descendent snapshot
         return {}
+
+
+@cached_data(ttl=3600)
+def _load_source_checks() -> list:
+    return check_all_pulls()
 
 
 def main() -> None:
@@ -163,6 +170,7 @@ def main() -> None:
         tab_labels.append("Priority")
     tab_labels.append("Coverage")
     tab_labels.append("Insights")
+    tab_labels.append("Sources")
 
     # Computed above st.tabs() rather than inside the "Priority" tab's `with`
     # block, so the Insights tab's cross-link to priority rank is an
@@ -209,6 +217,9 @@ def main() -> None:
 
     with tab_map["Insights"]:
         _render_insights_tab(catalog, topic_key, indicator, long_df, citation, priority)
+
+    with tab_map["Sources"]:
+        render_sources_panel(_load_source_checks(), load_sources())
 
 
 def _render_insights_tab(

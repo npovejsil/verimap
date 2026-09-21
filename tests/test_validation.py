@@ -9,6 +9,8 @@ from recipe.validation import (
     check_empty_variable,
     check_mixed_dates,
     check_multi_facet,
+    check_place_coverage,
+    check_place_id_format,
     check_range_violation,
     check_unit_drift,
     cross_check_weighted_mean,
@@ -160,3 +162,77 @@ def test_cross_check_fails_outside_tolerance() -> None:
     pop_df = pd.DataFrame({"place_dcid": ["country/A"], "value": [1.0]})
     finding = cross_check_weighted_mean(long_df, pop_df, published_value=90.0)
     assert finding.level == "error"
+
+
+# ---------------------------------------------------------------------------
+# Place-level checks (added with the verified-source harness)
+# ---------------------------------------------------------------------------
+
+
+def _place_payload(places: dict, dcid: str = "worldbank/EG.ELC.LOSS.ZS"):
+    return ObservationPayload(
+        data={
+            dcid: {
+                p: {"date": "2023", "facet": "f", "value": v} for p, v in places.items()
+            }
+        },
+        facets={"f": {"unit": "worldbank/PCT_OUTPUT"}},
+        requested_variables=(dcid,),
+    )
+
+
+def test_check_place_id_format_accepts_well_formed_country_dcids() -> None:
+    payload = _place_payload({"country/RWA": 18.3, "country/KEN": 20.0})
+    assert check_place_id_format(payload, "worldbank/EG.ELC.LOSS.ZS") is None
+
+
+def test_check_place_id_format_flags_bare_iso3_codes() -> None:
+    # A bare "RWA" does not raise -- it silently fails the geometry join and
+    # the country disappears off the map, which is why this is an error.
+    payload = _place_payload({"RWA": 18.3, "country/KEN": 20.0})
+    finding = check_place_id_format(payload, "worldbank/EG.ELC.LOSS.ZS")
+    assert finding is not None
+    assert finding.level == "error"
+    assert finding.code == "MALFORMED_PLACE_ID"
+    assert finding.evidence["examples"] == ["RWA"]
+
+
+def test_check_place_coverage_is_quiet_within_tolerance() -> None:
+    indicator = Indicator(
+        key="k",
+        dcid="worldbank/EG.ELC.LOSS.ZS",
+        label="l",
+        topics=(),
+        polarity="neutral",
+        place_coverage=100,
+    )
+    payload = _place_payload({f"country/A{i:02d}": 1.0 for i in range(95)})
+    assert check_place_coverage(payload, indicator) is None
+
+
+def test_check_place_coverage_warns_on_a_material_drop() -> None:
+    indicator = Indicator(
+        key="k",
+        dcid="worldbank/EG.ELC.LOSS.ZS",
+        label="l",
+        topics=(),
+        polarity="neutral",
+        place_coverage=100,
+    )
+    payload = _place_payload({f"country/A{i:02d}": 1.0 for i in range(50)})
+    finding = check_place_coverage(payload, indicator)
+    assert finding is not None
+    assert finding.level == "warn"
+    assert finding.code == "PLACE_COVERAGE_DROP"
+
+
+def test_check_place_coverage_needs_a_baseline_to_compare_against() -> None:
+    unenriched = Indicator(
+        key="k",
+        dcid="worldbank/EG.ELC.LOSS.ZS",
+        label="l",
+        topics=(),
+        polarity="neutral",
+    )
+    payload = _place_payload({"country/RWA": 1.0})
+    assert check_place_coverage(payload, unenriched) is None

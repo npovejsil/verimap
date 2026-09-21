@@ -23,9 +23,13 @@ discover:
 snapshot:
 	$(PY) scripts/snapshot.py
 
+verify-sources:
+	$(PY) scripts/verify_sources.py
+
 verify:
 	$(PY) scripts/verify_endpoints.py
 	$(PY) scripts/verify_join.py
+	$(PY) scripts/verify_sources.py
 
 test:
 	.venv/bin/pytest -q

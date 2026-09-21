@@ -7,6 +7,7 @@ hard rules: never silently drop rows, and never combine incompatible units.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 import pandas as pd
@@ -153,6 +154,63 @@ def check_empty_variable(payload: ObservationPayload, dcid: str) -> Finding | No
             code="EMPTY_VARIABLE",
             message=f"{dcid} returned zero places.",
             evidence={"dcid": dcid},
+        )
+    return None
+
+
+_PLACE_DCID_RE = re.compile(r"^country/[A-Z]{3}$")
+
+
+def check_place_id_format(payload: ObservationPayload, dcid: str) -> Finding | None:
+    """Flag place ids that will not join against the country geometry.
+
+    recipe/geography.py joins observations to GeoJSON features on an exact
+    `country/XXX` match, so a malformed id does not error -- it silently drops
+    the country off the map. This is the guard on the World Bank client's
+    ISO3 crosswalk, where the API supplies bare codes like "RWA" and an empty
+    string for some rows.
+    """
+    bad = [p for p in payload.variable(dcid) if not _PLACE_DCID_RE.match(p)]
+    if bad:
+        return Finding(
+            level="error",
+            code="MALFORMED_PLACE_ID",
+            message=(
+                f"{dcid}: {len(bad)} place ids are not of the form country/XXX "
+                "and would be dropped silently by the geometry join."
+            ),
+            evidence={"examples": bad[:5]},
+        )
+    return None
+
+
+def check_place_coverage(
+    payload: ObservationPayload, indicator: Indicator, tolerance: float = 0.10
+) -> Finding | None:
+    """Flag a pull that returns materially fewer places than the catalog expects.
+
+    A source quietly dropping a third of its countries is not an error the API
+    reports; it just returns less. The enriched `place_coverage` is the
+    baseline to notice that against.
+    """
+    if not indicator.place_coverage:
+        return None
+    observed = len(payload.variable(indicator.dcid))
+    floor = indicator.place_coverage * (1 - tolerance)
+    if observed < floor:
+        return Finding(
+            level="warn",
+            code="PLACE_COVERAGE_DROP",
+            message=(
+                f"{indicator.key}: {observed} places returned, but the catalog "
+                f"recorded {indicator.place_coverage}. Re-run `make enrich` if "
+                "the source intentionally changed coverage."
+            ),
+            evidence={
+                "observed": observed,
+                "expected": indicator.place_coverage,
+                "tolerance": tolerance,
+            },
         )
     return None
 

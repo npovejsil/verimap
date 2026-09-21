@@ -144,8 +144,11 @@ def _enrich_worldbank(
             dates.append(str(row["date"]))
         entry["place_coverage"] = len(values)
         if values:
-            entry["value_min"] = round(min(values), 4)
-            entry["value_max"] = round(max(values), 4)
+            # Stored unrounded: rounding these inward puts the extreme
+            # observation outside its own recorded range, which
+            # check_range_violation then reports as drift.
+            entry["value_min"] = min(values)
+            entry["value_max"] = max(values)
             entry["temporal_start"] = min(dates)
             entry["temporal_end"] = max(dates)
     except Exception as exc:  # noqa: BLE001
