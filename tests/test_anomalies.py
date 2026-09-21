@@ -3,6 +3,8 @@ from __future__ import annotations
 import pandas as pd
 
 from analytics.anomalies import (
+    _interval_phrase,
+    _per_year_note,
     compute_scales,
     detect_anomalies,
     detect_peer_outliers,
@@ -71,6 +73,7 @@ def test_year_over_year_empty_input() -> None:
         "prior_value",
         "change",
         "gap_years",
+        "change_per_year",
     ]
 
 
@@ -348,3 +351,95 @@ def test_spike_does_not_imply_reversal() -> None:
     jumpy_kinds = {a.kind for a in anomalies if a.place_dcid == "JUMPY"}
     assert "spike" in jumpy_kinds
     assert "reversal" not in jumpy_kinds
+
+
+def _sparse(place: str, points: dict[int, float]) -> pd.DataFrame:
+    """A series reported on an irregular cycle, e.g. {2009: 40.0, 2015: 10.0}."""
+    years = sorted(points)
+    return pd.DataFrame(
+        {
+            "place_dcid": [place] * len(years),
+            "date": [str(y) for y in years],
+            "value": [points[y] for y in years],
+        }
+    )
+
+
+def test_change_per_year_divides_by_the_reporting_gap() -> None:
+    # 2000, 2001, 2003: the 2003 row spans two years, so a 10-point move is
+    # 5 points per year, not 10.
+    df = _sparse("A", {2000: 10.0, 2001: 20.0, 2003: 30.0})
+    yoy = year_over_year(df)
+    one_year, two_year = yoy.iloc[0], yoy.iloc[1]
+    assert one_year["gap_years"] == 1
+    assert one_year["change"] == 10.0
+    assert one_year["change_per_year"] == 10.0
+    assert two_year["gap_years"] == 2
+    assert two_year["change"] == 10.0
+    assert two_year["change_per_year"] == 5.0
+
+
+def test_annualizing_is_a_no_op_for_an_annual_series() -> None:
+    # The guard against regressing the 13 annual indicators: when every gap is
+    # one year, the annualized rate is exactly the raw change.
+    df = _series("A", [1.0, 4.0, 2.0, 9.0, 3.0, 11.0, 5.0])
+    yoy = year_over_year(df)
+    assert (yoy["gap_years"] == 1).all()
+    assert yoy["change"].equals(yoy["change_per_year"])
+
+
+def test_a_multi_year_move_is_not_scored_as_a_one_year_spike() -> None:
+    # The defect: a country reporting every 6 years shows large raw changes
+    # that are unremarkable once spread over the interval. Scoring the raw
+    # change flags it against peers who move the same amount in a single year.
+    steady = [
+        _sparse(f"S{i}", {2000: 0.0, 2006: 30.0, 2012: 60.0, 2018: 90.0})
+        for i in range(8)
+    ]
+    df = pd.concat(steady, ignore_index=True)
+    yoy = year_over_year(df)
+    scales = compute_scales(yoy)
+    assert scales is not None
+    # every country advances 5.0/year throughout, so nothing is anomalous
+    assert detect_spikes(yoy, scales, min_obs=2) == []
+
+
+def test_detail_names_the_interval_for_a_multi_year_change() -> None:
+    # The copy defect: a six-year move must not be described as year-to-year.
+    # Peers advance at a spread of rates so the pooled scale is non-zero (a
+    # perfectly uniform panel has a MAD of 0 and flags nothing by design).
+    movers = [
+        _sparse(
+            f"S{i}",
+            {
+                2000: 0.0,
+                2006: 6.0 + i,
+                2012: 12.0 + 2 * i,
+                2018: 18.0 + 3 * i,
+            },
+        )
+        for i in range(12)
+    ]
+    outlier = _sparse("OUT", {2000: 0.0, 2006: 6.0, 2012: 12.0, 2018: 300.0})
+    df = pd.concat(movers + [outlier], ignore_index=True)
+    yoy = year_over_year(df)
+    scales = compute_scales(yoy)
+    assert scales is not None
+    found = detect_peer_outliers(yoy, scales)
+    assert found, "expected the 2018 outlier to be flagged"
+    detail = found[0].detail
+    assert "between 2012 and 2018" in detail
+    assert "that same year" not in detail
+
+
+def test_interval_wording_helpers() -> None:
+    annual = pd.Series(
+        {"gap_years": 1, "date": "2019", "prior_date": "2018", "change_per_year": 4.0}
+    )
+    spanning = pd.Series(
+        {"gap_years": 6, "date": "2019", "prior_date": "2013", "change_per_year": 4.0}
+    )
+    assert _per_year_note(annual) == ""
+    assert _per_year_note(spanning) == " (4.0 per year)"
+    assert _interval_phrase(annual) == "in 2019"
+    assert _interval_phrase(spanning) == "between 2013 and 2019"
