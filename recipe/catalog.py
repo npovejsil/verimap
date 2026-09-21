@@ -37,6 +37,8 @@ class Indicator:
     saturation_ceiling: float | None = None
     denominator: str | None = None
     role: str | None = None
+    # Which API this indicator is pulled from; see catalog/sources.yml.
+    source: str = "un_datacommons"
 
     # Enriched fields (blank until `make enrich` has run)
     source_agency: str | None = None
@@ -52,6 +54,9 @@ class Indicator:
     value_max: float | None = None
     place_coverage: int | None = None
     facet_count: int | None = None
+    # Who actually produced the numbers, which is often not the publisher:
+    # three of the four direct World Bank energy pulls are republished IEA data.
+    upstream_source: str | None = None
     enriched: bool = False
 
 
@@ -69,8 +74,26 @@ class Catalog:
     dimensions: dict[str, Any]
     units: dict[str, Any]
 
+    def topics_for_indicator(self, indicator_key: str) -> list[Topic]:
+        """The topics an indicator belongs to, in catalog order.
+
+        The inverse of indicators_for_topic. Used to label an indicator in a
+        flat, un-grouped picker list, and to find its siblings now that the
+        sidebar no longer tracks a single "current" topic.
+        """
+        indicator = self.indicators[indicator_key]
+        return [self.topics[t] for t in indicator.topics if t in self.topics]
+
     def indicators_for_topic(self, topic_key: str) -> list[Indicator]:
         return [ind for ind in self.indicators.values() if topic_key in ind.topics]
+
+
+def _valid_sources() -> set[str]:
+    """Source ids declared in catalog/sources.yml.
+
+    Read directly rather than via recipe.sources, which imports this module.
+    """
+    return set(load_yaml(CATALOG_DIR / "sources.yml").get("sources", {}))
 
 
 def load_yaml(path: Path) -> dict[str, Any]:
@@ -115,6 +138,13 @@ def load_catalog(catalog_dir: Path = CATALOG_DIR) -> Catalog:
                 f"must be one of {_VALID_POLARITIES}"
             )
 
+        source = curated.get("source", "un_datacommons")
+        if source not in _valid_sources():
+            raise CatalogError(
+                f"indicator '{key}' declares unknown source '{source}', "
+                f"must be one of {sorted(_valid_sources())} (see catalog/sources.yml)"
+            )
+
         topic_keys = tuple(curated.get("topics", []))
         for t in topic_keys:
             if t != "_denominators" and t not in topics:
@@ -133,22 +163,61 @@ def load_catalog(catalog_dir: Path = CATALOG_DIR) -> Catalog:
             saturation_ceiling=merged.get("saturation_ceiling"),
             denominator=merged.get("denominator"),
             role=merged.get("role"),
+            source=source,
             source_agency=enrichment.get("source_agency"),
             code=enrichment.get("code"),
             dimensions=enrichment.get("dimensions", {}),
             provenance_id=enrichment.get("provenance_id"),
             provenance_url=enrichment.get("provenance_url"),
-            unit=enrichment.get("unit"),
-            unit_display=enrichment.get("unit_display"),
+            # From `merged`, not `enrichment`: a hand-declared unit must win.
+            # The World Bank API reports unit="" on every observation, so its
+            # indicators declare units in indicators.yml -- and the client reads
+            # indicator.unit to build the facet it returns, so enrichment cannot
+            # be what supplies it without a cycle.
+            unit=merged.get("unit"),
+            unit_display=merged.get("unit_display"),
             temporal_start=enrichment.get("temporal_start"),
             temporal_end=enrichment.get("temporal_end"),
             value_min=enrichment.get("value_min"),
             value_max=enrichment.get("value_max"),
             place_coverage=enrichment.get("place_coverage"),
             facet_count=enrichment.get("facet_count"),
+            upstream_source=enrichment.get("upstream_source"),
             enriched=bool(enrichment),
         )
 
     return Catalog(
         indicators=indicators, topics=topics, dimensions=dimensions, units=units
+    )
+
+
+def selectable_indicators(
+    catalog: Catalog, topic_filter: set[str] | None = None
+) -> list[Indicator]:
+    """Indicators a person can actually choose, optionally narrowed by topic.
+
+    Denominators are excluded: population is a divisor for other indicators,
+    not something to map on its own. `topic_filter` narrows the list, but an
+    empty or None filter means everything -- topics filter the picker, they no
+    longer gate it, so any indicator can be compared against any other.
+
+    Sorted by topic then label so a flat list still reads as grouped.
+    """
+    topic_order = list(catalog.topics)
+
+    def sort_key(indicator: Indicator) -> tuple[int, str]:
+        first = next(
+            (topic_order.index(t) for t in indicator.topics if t in topic_order),
+            len(topic_order),
+        )
+        return (first, indicator.label.lower())
+
+    return sorted(
+        (
+            i
+            for i in catalog.indicators.values()
+            if i.role != "denominator"
+            and (not topic_filter or set(i.topics) & topic_filter)
+        ),
+        key=sort_key,
     )

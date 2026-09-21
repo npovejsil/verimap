@@ -18,6 +18,7 @@ import streamlit as st
 
 from recipe.attribution import Citation, require_citations
 from recipe.keymatch import JoinSpec
+from recipe.validation import drop_missing
 
 
 def weighted_median(values: pd.Series, weights: pd.Series) -> float:
@@ -57,6 +58,19 @@ def render_bivariate(
         st.info("No overlapping observations to plot.")
         return
 
+    # Point size comes from a left join on population, so a country the
+    # denominator does not cover arrives here as NaN -- which plotly rejects
+    # outright rather than skipping. Drop those rows from the sized plot and
+    # say so, rather than letting them disappear without explanation.
+    size_report = None
+    if size_col and size_col in plot_df.columns:
+        plot_df, size_report = drop_missing(
+            plot_df, [size_col], f"no {size_col} figure available to size the point"
+        )
+        if plot_df.empty:
+            st.info("No overlapping observations to plot.")
+            return
+
     fig = px.scatter(
         plot_df,
         x=x_col,
@@ -87,6 +101,9 @@ def render_bivariate(
     )
 
     st.plotly_chart(fig, use_container_width=True)
+
+    if size_report is not None and size_report.n_dropped:
+        st.caption(size_report.message())
 
     if spec.comparability == "axes_only":
         st.caption(

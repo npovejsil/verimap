@@ -33,6 +33,21 @@ def parse_dcid(dcid: str) -> ParsedDcid:
     have no agency and no dimensions — they don't follow this grammar, which
     is why they can't participate in automatic key discovery.
     """
+    # Lowercase `worldbank/` is a direct World Bank API pull. Note that the
+    # camelCase `worldBank/` prefix is something else entirely -- a Data Commons
+    # dcid for a World Bank dataset it republishes -- and deliberately falls
+    # through to the generic external branch below. The two are different pipes
+    # and are never distinguished by sniffing the string; indicators declare
+    # which one they use with an explicit `source:` field.
+    if dcid.startswith("worldbank/"):
+        return ParsedDcid(
+            raw=dcid,
+            agency="worldbank",
+            code=dcid[len("worldbank/") :],
+            dimensions={},
+            is_undata=False,
+        )
+
     if not dcid.startswith("undata/"):
         return ParsedDcid(
             raw=dcid, agency=None, code=dcid, dimensions={}, is_undata=False

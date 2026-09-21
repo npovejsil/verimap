@@ -17,21 +17,21 @@ indicators:
   sdg_renew_capacity:
     dcid: undata/sdg/EG_EGY_RNEW
     label: Installed renewable capacity
-    topics: [energy_access]
+    topics: [energy_supply]
     polarity: higher_is_better
     sdg_target: "7.2"
 
   sdg_renew_share:
     dcid: undata/sdg/EG_FEC_RNEW
     label: Renewable share of energy consumption
-    topics: [energy_access]
+    topics: [energy_supply]
     polarity: higher_is_better
     sdg_target: "7.2"
 
   sdg_energy_intensity:
     dcid: undata/sdg/EG_EGY_PRIM
     label: Energy intensity of primary energy
-    topics: [energy_access]
+    topics: [energy_supply]
     polarity: lower_is_better
     sdg_target: "7.3"
 
@@ -71,3 +71,64 @@ indicators:
     topics: [energy_access]
     polarity: higher_is_better
     saturation_ceiling: 100
+
+  # Rural and urban access both live in the `percent` unit family: each is a
+  # share of its OWN base population, so `urban - rural` is a meaningful access
+  # gap. Contrast with transmission losses (% of output) and outages (% of
+  # firms), which get their own families precisely so the key-matcher refuses
+  # to subtract them from a share-of-population figure.
+  wb_elec_access_rural:
+    dcid: worldBank/EG_ELC_ACCS_RU_ZS
+    label: Electricity access, rural
+    topics: [energy_access]
+    polarity: higher_is_better
+    saturation_ceiling: 100
+
+  wb_elec_access_urban:
+    dcid: worldBank/EG_ELC_ACCS_UR_ZS
+    label: Electricity access, urban
+    topics: [energy_access]
+    polarity: higher_is_better
+    saturation_ceiling: 100
+
+  # --- Direct World Bank API pulls -------------------------------------------
+  # These four are NOT in the UN Data Commons instance (verified against
+  # /api/variable/info), which is the whole reason recipe/worldbank_client.py
+  # exists. Units are declared by hand because the World Bank API reports
+  # unit="" on every observation.
+
+  wb_transmission_losses:
+    dcid: worldbank/EG.ELC.LOSS.ZS
+    label: Transmission & distribution losses
+    topics: [energy_delivery]
+    polarity: lower_is_better
+    source: world_bank
+    unit: worldbank/PCT_OUTPUT
+    unit_display: "% of output"
+
+  wb_firm_outages:
+    dcid: worldbank/IC.ELC.OUTG.ZS
+    label: Firms experiencing power outages
+    topics: [energy_delivery]
+    polarity: lower_is_better
+    source: world_bank
+    unit: worldbank/PCT_FIRMS
+    unit_display: "% of firms"
+
+  wb_elec_consumption_pc:
+    dcid: worldbank/EG.USE.ELEC.KH.PC
+    label: Electricity consumption per capita
+    topics: [energy_supply]
+    polarity: neutral
+    source: world_bank
+    unit: worldbank/KWH_PER_CAPITA
+    unit_display: kWh per capita
+
+  wb_renew_output:
+    dcid: worldbank/EG.ELC.RNEW.ZS
+    label: Renewable share of electricity output
+    topics: [energy_supply]
+    polarity: higher_is_better
+    source: world_bank
+    unit: worldbank/PCT_OUTPUT
+    unit_display: "% of output"

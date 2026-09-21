@@ -220,3 +220,95 @@ indicators:
     place_coverage: 215
     unit_display: '%'
     provenance_url: https://databank.worldbank.org/source/world-development-indicators
+  wb_elec_access_rural:
+    dcid: worldBank/EG_ELC_ACCS_RU_ZS
+    label: Electricity access, rural
+    source_agency: null
+    code: worldBank/EG_ELC_ACCS_RU_ZS
+    dimensions: {}
+    provenance_id: dc/base/WorldBankDatasets
+    unit: Percent
+    temporal_start: '1990'
+    temporal_end: '2023'
+    value_min: 0.4
+    value_max: 100
+    facet_count: 1
+    place_coverage: 213
+    unit_display: '%'
+    provenance_url: https://databank.worldbank.org/source/world-development-indicators
+  wb_elec_access_urban:
+    dcid: worldBank/EG_ELC_ACCS_UR_ZS
+    label: Electricity access, urban
+    source_agency: null
+    code: worldBank/EG_ELC_ACCS_UR_ZS
+    dimensions: {}
+    provenance_id: dc/base/WorldBankDatasets
+    unit: Percent
+    temporal_start: '1990'
+    temporal_end: '2023'
+    value_min: 3.5
+    value_max: 100
+    facet_count: 1
+    place_coverage: 213
+    unit_display: '%'
+    provenance_url: https://databank.worldbank.org/source/world-development-indicators
+  wb_transmission_losses:
+    dcid: worldbank/EG.ELC.LOSS.ZS
+    label: Transmission & distribution losses
+    source_agency: worldbank
+    code: EG.ELC.LOSS.ZS
+    dimensions: {}
+    provenance_id: worldBank/WDI
+    provenance_url: https://data.worldbank.org/indicator/EG.ELC.LOSS.ZS
+    upstream_source: IEA Energy Statistics Data Browser
+    facet_count: 1
+    place_coverage: 150
+    value_min: 0.22997250704615
+    value_max: 61.8062946632203
+    temporal_start: '2014'
+    temporal_end: '2024'
+  wb_firm_outages:
+    dcid: worldbank/IC.ELC.OUTG.ZS
+    label: Firms experiencing power outages
+    source_agency: worldbank
+    code: IC.ELC.OUTG.ZS
+    dimensions: {}
+    provenance_id: worldBank/WDI
+    provenance_url: https://data.worldbank.org/indicator/IC.ELC.OUTG.ZS
+    upstream_source: Enterprise Surveys
+    facet_count: 1
+    place_coverage: 179
+    value_min: 0.0
+    value_max: 100.0
+    temporal_start: '2009'
+    temporal_end: '2025'
+  wb_elec_consumption_pc:
+    dcid: worldbank/EG.USE.ELEC.KH.PC
+    label: Electricity consumption per capita
+    source_agency: worldbank
+    code: EG.USE.ELEC.KH.PC
+    dimensions: {}
+    provenance_id: worldBank/WDI
+    provenance_url: https://data.worldbank.org/indicator/EG.USE.ELEC.KH.PC
+    upstream_source: IEA Energy Statistics Data Browser
+    facet_count: 1
+    place_coverage: 150
+    value_min: 13.7170206589719
+    value_max: 48997.9456981263
+    temporal_start: '2014'
+    temporal_end: '2024'
+  wb_renew_output:
+    dcid: worldbank/EG.ELC.RNEW.ZS
+    label: Renewable share of electricity output
+    source_agency: worldbank
+    code: EG.ELC.RNEW.ZS
+    dimensions: {}
+    provenance_id: worldBank/WDI
+    provenance_url: https://data.worldbank.org/indicator/EG.ELC.RNEW.ZS
+    upstream_source: IEA Energy Statistics Data Browser
+    facet_count: 1
+    place_coverage: 209
+    value_min: 0.0
+    value_max: 100.0
+    temporal_start: '2011'
+    temporal_end: '2021'
