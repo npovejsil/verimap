@@ -1,71 +1,250 @@
-"""Small local color helpers for pydeck fill colors.
+"""Colour tokens and chart chrome, chosen for colour-vision deficiency.
 
-pydeck's GeoJsonLayer wants `[r, g, b, a]` integer arrays per feature. This
-is a minimal standalone replacement for the internal `vizwhiz` package
-(not installable outside the NYT network) covering just what the choropleth
-needs.
+Every categorical set here was run through a CVD validator rather than picked
+by eye, and the ordering is the safety mechanism: hues are assigned in this
+fixed order and never cycled. Measured on the adjacent pairlist (lines, bars,
+stacks), the first five slots clear the gates in both modes -- worst adjacent
+CVD ΔE 9.1 light / 8.4 dark against an 8.0 target, worst normal-vision ΔE 19.6
+light / 19.3 dark against a 15.0 floor.
+
+`ALL_PAIRS_CAP` is the constraint that shapes the views. Scatter, bubble and
+choropleth compare *every* pair on screen, not just neighbours, and under that
+harder test only the first three slots pass: at eight slots, green against
+orange measures ΔE 3.2 for a protanope and red against orange measures 7.1 even
+with full colour vision. So a scatter never colours by a seven-value dimension
+like continent -- that becomes a filter instead.
+
+Sequential is one hue light-to-dark, never a rainbow. Diverging is two hues
+with a neutral grey midpoint, so "no difference" reads as nothing.
+
+Dark mode is *selected*, not an automatic inversion: the dark column is the
+same hues re-stepped for the dark surface and validated against it.
 """
 
 from __future__ import annotations
 
-# Opaque on purpose. At 47% alpha this picked up whatever basemap sat beneath
-# it, so "grey" in the legend described a colour that never actually rendered.
-# What validates is now what renders.
-NO_DATA_COLOR = [176, 176, 170, 255]  # #b0b0aa, 2.12:1 on the light basemap
+from dataclasses import dataclass
 
-# Sequential ramp (low -> high), used when the metric is a level (e.g. % access).
-# ColorBrewer YlOrBr, one hue family, monotonically darkening -- the convention
-# is dark = more. The lightest step is deliberately NOT the palest YlOrBr step
-# (#fff7bc): at 1.06:1 against the basemap it was indistinguishable from "no
-# country here". #fee391 lifts that to 1.23:1 while keeping the ramp monotonic.
-_SEQUENTIAL = [
-    (254, 227, 145),
-    (254, 153, 41),
-    (217, 95, 14),
-    (153, 52, 4),
-]
+# -- categorical -------------------------------------------------------------
+# Fixed assignment order. Never cycle; a 9th series folds into "Other".
+CATEGORICAL_LIGHT = (
+    "#2a78d6",  # blue
+    "#eb6834",  # orange
+    "#1baf7a",  # aqua
+    "#eda100",  # yellow
+    "#e87ba4",  # magenta
+    "#008300",  # green
+    "#4a3aa7",  # violet
+    "#e34948",  # red
+)
+CATEGORICAL_DARK = (
+    "#3987e5",
+    "#d95926",
+    "#199e70",
+    "#c98500",
+    "#d55181",
+    "#008300",
+    "#9085e9",
+    "#e66767",
+)
 
-# Diverging ramp (negative -> positive), used when the metric is a gap/difference.
-_DIVERGING = [
-    (178, 24, 43),
-    (244, 165, 130),
-    (247, 247, 247),
-    (146, 197, 222),
-    (33, 102, 172),
-]
+#: Max series for charts that compare every pair at once (scatter, choropleth).
+ALL_PAIRS_CAP = 3
+
+# -- sequential: one hue, light -> dark --------------------------------------
+_BLUE_RAMP = (
+    (205, 226, 251),  # 100
+    (158, 197, 244),  # 200
+    (109, 167, 236),  # 300
+    (57, 135, 229),  # 400
+    (37, 106, 191),  # 500
+    (24, 79, 149),  # 600
+    (13, 54, 107),  # 700
+)
+
+# -- diverging: two poles, neutral grey midpoint -----------------------------
+_DIVERGING_LIGHT = (
+    (158, 47, 47),
+    (227, 73, 72),
+    (240, 239, 236),  # neutral -- "no difference" must not read as a hue
+    (42, 120, 214),
+    (24, 79, 149),
+)
+_DIVERGING_DARK = (
+    (201, 75, 75),
+    (230, 103, 103),
+    (56, 56, 53),
+    (57, 135, 229),
+    (28, 92, 171),
+)
+
+
+# Map fills are opaque on purpose. At partial alpha a fill picks up whatever
+# basemap sits beneath it, so the swatch in the legend describes a colour that
+# never actually renders -- and a CVD measurement taken on the token stops
+# describing what a viewer sees. What validates here is what renders.
+@dataclass(frozen=True)
+class Tokens:
+    """Chart chrome for one mode. Roles, not raw hex, at the call sites."""
+
+    dark: bool
+    surface: str
+    primary: str
+    secondary: str
+    muted: str
+    grid: str
+    baseline: str
+    border: str
+    categorical: tuple[str, ...]
+    no_data: tuple[int, int, int, int]
+    good: str = "#0ca30c"
+    warning: str = "#fab219"
+    critical: str = "#d03b3b"
+
+    @property
+    def series(self) -> str:
+        """Slot 1 -- the default for a single-series chart."""
+        return self.categorical[0]
+
+
+LIGHT = Tokens(
+    dark=False,
+    surface="#fcfcfb",
+    primary="#0b0b0b",
+    secondary="#52514e",
+    muted="#898781",
+    grid="#e1e0d9",
+    baseline="#c3c2b7",
+    border="rgba(11,11,11,0.10)",
+    categorical=CATEGORICAL_LIGHT,
+    no_data=(176, 176, 170, 255),
+)
+DARK = Tokens(
+    dark=True,
+    surface="#1a1a19",
+    primary="#ffffff",
+    secondary="#c3c2b7",
+    muted="#898781",
+    grid="#2c2c2a",
+    baseline="#383835",
+    border="rgba(255,255,255,0.10)",
+    categorical=CATEGORICAL_DARK,
+    no_data=(90, 90, 85, 255),
+)
+
+#: Kept for callers that predate theme awareness; light is the default surface.
+NO_DATA_COLOR = list(LIGHT.no_data)
+
+
+def tokens(dark: bool = False) -> Tokens:
+    return DARK if dark else LIGHT
+
+
+def active_tokens() -> Tokens:
+    """Tokens for the viewer's current theme.
+
+    Read per render rather than threaded through every signature, and falling
+    back to light outside a script run so the module stays importable from
+    tests and scripts.
+    """
+    try:
+        import streamlit as st
+
+        return tokens(getattr(st.context.theme, "type", None) == "dark")
+    except Exception:  # noqa: BLE001 - theme is cosmetic, never fatal
+        return LIGHT
 
 
 def _lerp(a: tuple[int, int, int], b: tuple[int, int, int], t: float) -> list[int]:
     return [round(a[i] + (b[i] - a[i]) * t) for i in range(3)]
 
 
-def sequential_color(
-    value: float, vmin: float, vmax: float, alpha: int = 255
-) -> list[int]:
-    """Map a value in [vmin, vmax] to a color on the sequential ramp."""
-    if vmax <= vmin:
-        t = 0.0
-    else:
-        t = max(0.0, min(1.0, (value - vmin) / (vmax - vmin)))
-    n = len(_SEQUENTIAL) - 1
+def _ramp_at(ramp: tuple, t: float) -> list[int]:
+    t = max(0.0, min(1.0, t))
+    n = len(ramp) - 1
     idx = min(int(t * n), n - 1)
-    local_t = (t * n) - idx
-    rgb = _lerp(_SEQUENTIAL[idx], _SEQUENTIAL[idx + 1], local_t)
-    return rgb + [alpha]
+    return _lerp(ramp[idx], ramp[idx + 1], (t * n) - idx)
+
+
+def sequential_color(
+    value: float, vmin: float, vmax: float, alpha: int = 255, dark: bool = False
+) -> list[int]:
+    """Map a value to the single-hue blue ramp.
+
+    Direction flips with the surface so the low end always recedes *toward*
+    the background: pale blue on light, deep blue on dark. Magnitude still
+    reads as "more ink", which is what a sequential ramp has to mean.
+    """
+    t = 0.0 if vmax <= vmin else (value - vmin) / (vmax - vmin)
+    ramp = tuple(reversed(_BLUE_RAMP)) if dark else _BLUE_RAMP
+    return _ramp_at(ramp, t) + [alpha]
 
 
 def diverging_color(
-    value: float, vmin: float, vmax: float, alpha: int = 255
+    value: float, vmin: float, vmax: float, alpha: int = 255, dark: bool = False
 ) -> list[int]:
-    """Map a value in [vmin, vmax] to a color on the diverging ramp, centered at 0."""
+    """Map a signed value to the blue↔red ramp, centred on zero at the grey."""
     bound = max(abs(vmin), abs(vmax), 1e-9)
     t = max(-1.0, min(1.0, value / bound))
-    t01 = (t + 1) / 2
-    n = len(_DIVERGING) - 1
-    idx = min(int(t01 * n), n - 1)
-    local_t = (t01 * n) - idx
-    rgb = _lerp(_DIVERGING[idx], _DIVERGING[idx + 1], local_t)
-    return rgb + [alpha]
+    return _ramp_at(_DIVERGING_DARK if dark else _DIVERGING_LIGHT, (t + 1) / 2) + [
+        alpha
+    ]
+
+
+def sequential_scale(dark: bool = False) -> list[list]:
+    """The same ramp as a plotly colorscale."""
+    ramp = tuple(reversed(_BLUE_RAMP)) if dark else _BLUE_RAMP
+    n = len(ramp) - 1
+    return [[i / n, f"rgb{c}"] for i, c in enumerate(ramp)]
+
+
+def apply_chart_chrome(fig, tok: Tokens, *, legend: bool = True) -> None:
+    """Recede the chrome so the data is the only thing with weight.
+
+    Hairline grid, muted axis ink, no plot border, transparent surface so the
+    chart sits on the page rather than in a box, and a hover label that
+    matches the surface instead of plotly's default black.
+    """
+    fig.update_layout(
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(
+            family='system-ui, -apple-system, "Segoe UI", sans-serif',
+            size=13,
+            color=tok.secondary,
+        ),
+        margin=dict(t=56 if legend else 24, l=8, r=8, b=8),
+        hoverlabel=dict(
+            bgcolor=tok.surface,
+            bordercolor=tok.border,
+            font=dict(
+                family='system-ui, -apple-system, "Segoe UI", sans-serif',
+                color=tok.primary,
+            ),
+        ),
+        showlegend=legend,
+        legend=dict(
+            orientation="h",
+            yanchor="bottom",
+            y=1.02,
+            x=0,
+            bgcolor="rgba(0,0,0,0)",
+            font=dict(color=tok.secondary),
+        ),
+        colorway=list(tok.categorical),
+    )
+    axis = dict(
+        gridcolor=tok.grid,
+        griddash="solid",
+        zerolinecolor=tok.baseline,
+        linecolor=tok.baseline,
+        tickfont=dict(color=tok.muted, size=12),
+        title_font=dict(color=tok.secondary, size=13),
+        showline=False,
+        ticks="",
+    )
+    fig.update_xaxes(**axis)
+    fig.update_yaxes(**axis)
 
 
 def quantile_breaks(values: list[float], n_bins: int = 5) -> list[float]:
@@ -76,13 +255,13 @@ def quantile_breaks(values: list[float], n_bins: int = 5) -> list[float]:
     report exactly 100% electricity access, so a linear scale renders all of
     them (and everyone above ~90%) as the same darkest shade, while the real
     variation (mostly African countries between 5-90%) gets compressed into
-    a narrow band of similar oranges. Quantile breaks instead give each bin
+    a narrow band of similar blues. Quantile breaks instead give each bin
     roughly the same NUMBER of places, so color separates places that are
     actually different and stops trying to separate places that report the
     same number.
 
-    Falls back to evenly-spaced breaks over [min, max] if there are fewer
-    unique values than requested bins (e.g. a mostly-constant indicator).
+    Falls back to the unique values themselves if there are fewer of them
+    than requested bins (e.g. a mostly-constant indicator).
     """
     uniq = sorted(set(values))
     if len(uniq) <= 1:
@@ -109,16 +288,18 @@ def quantile_breaks(values: list[float], n_bins: int = 5) -> list[float]:
 
 
 def binned_sequential_color(
-    value: float, breaks: list[float], alpha: int = 255
+    value: float, breaks: list[float], alpha: int = 255, dark: bool = False
 ) -> list[int]:
     """Map a value to one discrete step of the sequential ramp using quantile bins.
 
     Unlike `sequential_color`'s continuous interpolation, every value in the
     same bin gets the exact same color -- the legend can then show one swatch
-    per bin with an exact range, instead of an unlabeled gradient.
+    per bin with an exact range, instead of an unlabeled gradient. Ramp
+    direction flips with the surface for the same reason it does there.
     """
+    ramp = tuple(reversed(_BLUE_RAMP)) if dark else _BLUE_RAMP
     if len(breaks) < 2:
-        return list(_SEQUENTIAL[-1]) + [alpha]
+        return list(ramp[-1]) + [alpha]
 
     n_bins = len(breaks) - 1
     bin_idx = n_bins - 1
@@ -129,12 +310,7 @@ def binned_sequential_color(
 
     # Sample the ramp at the bin's midpoint so bins spread across the full
     # light->dark range rather than clustering in the ramp's interior.
-    t = (bin_idx + 0.5) / n_bins
-    ramp_n = len(_SEQUENTIAL) - 1
-    ramp_idx = min(int(t * ramp_n), ramp_n - 1)
-    local_t = (t * ramp_n) - ramp_idx
-    rgb = _lerp(_SEQUENTIAL[ramp_idx], _SEQUENTIAL[ramp_idx + 1], local_t)
-    return rgb + [alpha]
+    return _ramp_at(ramp, (bin_idx + 0.5) / n_bins) + [alpha]
 
 
 def bin_label(

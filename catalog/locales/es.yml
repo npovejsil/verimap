@@ -1,0 +1,242 @@
+# Spanish. Key set must match en.yml exactly (tests/test_i18n.py enforces).
+# Indicator names follow UNSD's Spanish SDG terminology where it exists;
+# needs native-speaker review before this is shown to a UN audience.
+version: 1
+locale: es
+name: Español
+direction: ltr
+
+numbers:
+  decimal: ","
+  group: "."
+  million: "M"
+  list_separator: ", "
+
+ui:
+  app.title: "Panel de los ODS de la ONU entre organismos"
+  app.caption: >-
+    Una receta reutilizable para obtener, validar y combinar indicadores de
+    distintos organismos de la ONU: sin código nuevo por indicador.
+
+  sidebar.language: "Idioma"
+  sidebar.topic_filter: "Filtrar la lista por tema (opcional)"
+  picker.other_topic: "Otros"
+  sidebar.indicator: "Indicador"
+  sidebar.compare: "Comparar con"
+  sidebar.compare_none: "(ninguno)"
+  sidebar.weights_header: "**Ponderaciones de la puntuación de prioridad**"
+  sidebar.weight_people: "Cuánto priorizar: personas afectadas"
+  sidebar.weight_stagnation: "Cuánto priorizar: sin mejora"
+
+  tab.map: "Mapa"
+  tab.trends: "Tendencias"
+  tab.gap: "Análisis de brechas"
+  tab.priority: "Prioridad"
+  tab.coverage: "Cobertura"
+  tab.sources: "Fuentes"
+  tab.insights: "Hallazgos"
+
+  source.prefix: "Fuente: {citation}"
+  source.unit: "unidad: {unit}"
+
+  rtl.notice: >-
+    El texto se muestra de derecha a izquierda. El mapa y los gráficos no se
+    invierten: siguen leyéndose de izquierda a derecha.
+
+  warn.no_indicators: "Ningún indicador coincide con ese filtro de tema; prueba a quitarlo."
+  warn.no_observations: "No se obtuvieron observaciones para {indicator}."
+  info.need_history: >-
+    Esta vista necesita más datos históricos de los que tenemos cargados en
+    este momento.
+  info.need_two_indicators: >-
+    Esta vista necesita al menos dos indicadores configurados para este tema;
+    ahora mismo solo hay uno disponible.
+  info.need_date_range: >-
+    Esta vista necesita un rango de fechas conocido para este indicador, que
+    aún no está configurado.
+
+  map.coverage: "{matched} de {total} lugares del mapa tienen datos para este indicador."
+  map.no_data_legend: "⬜ Gris = no hay datos disponibles para este país."
+  map.no_data_swatch: "Sin datos"
+  map.this_indicator: "este indicador"
+  map.hover_hint: "ℹ️ Al pasar el cursor sobre un país se muestra su valor de **{metric}**{unit}: el mismo número en el que se basa el sombreado de color."
+  map.excluded: >-
+    Se excluyeron {count} lugares con datos pero sin geometría en el mapa:
+    {places}. No se representan en el mapa siguiente.
+
+  trends.title: "Tendencias a lo largo del tiempo"
+  trends.empty: "No hay series temporales para los lugares seleccionados."
+  trends.saturated_legend: "{place} (ya en el máximo)"
+  trends.fit_legend: "{place} tendencia ({slope}/año)"
+  trends.axis_year: "Año"
+  trends.axis_value: "valor"
+
+  coverage.title: "Cobertura de datos"
+  coverage.places_reporting: "Lugares que reportan"
+  coverage.completeness: "Completitud"
+  coverage.missing_cells: "{count} celdas faltantes"
+  coverage.axis_year: "Año"
+  coverage.axis_place: "Lugar"
+  coverage.axis_observed: "Observado"
+  coverage.stalest_header: "**Países menos actualizados** (año más antiguo del último reporte)"
+  coverage.col_latest_year: "Año más reciente reportado"
+  coverage.download: "Descargar en CSV las celdas (lugar, año) faltantes"
+
+  compare.title: "¿Podemos comparar estos dos?"
+  compare.pair: "**{left}** ({left_source}) × **{right}** ({right_source})"
+  compare.external_source: "fuente externa"
+  compare.outside_un: "🌐 Una de estas fuentes está fuera del sistema estadístico de la ONU."
+  compare.countries_both: "Países cubiertos por ambas"
+  compare.countries_both_value: "{shared} de {total}"
+  compare.countries_only_one: "{count} países solo en una fuente"
+  compare.years_both: "Años que reportan ambas fuentes"
+  compare.none_marker: "—"
+  compare.verdict_direct: >-
+    ✅ Se pueden comparar directamente: misma medición, escala comparable.
+  compare.verdict_axes_only: >-
+    ⚠️ Se pueden mostrar una junto a otra, pero no restar ni dividir: están
+    medidas en unidades distintas.
+  compare.verdict_blocked: >-
+    🚫 No se pueden comparar: no hay países ni años en común.
+  compare.dimension_shared: "- Ambas fuentes lo desglosan igual: **{dimension}**"
+  compare.dimension_unmatched: >-
+    - **{dimension}**: las dos fuentes lo categorizan de forma distinta y no
+    hemos podido alinearlas
+
+  gap.title: "Análisis de brechas: ¿dónde un recurso llega a más personas?"
+  gap.empty: "No hay observaciones superpuestas para representar."
+  gap.cannot_plot: "No se puede representar {x} frente a {y}: {reasons}"
+  gap.cannot_crossplot: "No se puede cruzar: {reasons}"
+  gap.headroom_annotation: "bajo / bajo — mayor margen de mejora"
+  gap.axes_only_note: >-
+    Las unidades difieren entre estos indicadores: se representan solo en ejes
+    separados. Las diferencias y razones entre ellos están desactivadas.
+  gap.table_expander: "Ver la tabla comparativa año por año"
+  gap.col_country: "País"
+  gap.col_indicator_year: "Año de {indicator}"
+  gap.col_difference: "Diferencia"
+
+  gap.region_filter: "Región"
+  gap.region_all: "Todas las regiones"
+
+  blocker.no_places: "Estas dos fuentes no tienen ningún país en común."
+  blocker.no_years: "Estas dos fuentes no tienen ningún año de reporte en común."
+
+  insights.convergence_title: "**¿Están alcanzando los países rezagados?** ({indicator}, {start}–{end})"
+  insights.convergence_empty: >-
+    No hay suficientes lugares con datos en ambos años para comprobar si hay
+    convergencia.
+  insights.catch_up_yes: "Sí, hay cierta convergencia"
+  insights.catch_up_no: "No se detecta convergencia"
+  insights.catch_up_signal: "Señal de convergencia"
+  insights.stats_expander: "Mostrar las estadísticas detrás de esto"
+  insights.beta: "β (negativo = convergencia)"
+  insights.ci: "IC del 95 %"
+  insights.r_squared: "R²"
+  insights.groups_title: "**Grupos de países similares**"
+  insights.groups_empty: >-
+    No hay suficientes lugares con datos completos en los indicadores
+    seleccionados.
+  insights.k_expander: "Cómo elegimos el número de grupos"
+  insights.k_caption: "{k} grupos elegidos por coeficiente de silueta ({scores})."
+  insights.group_label: "Grupo {n}"
+  insights.group_axis: "Grupo"
+  insights.countries_axis: "Países"
+
+  priority.title: "Prioridad: ¿dónde este indicador llega a más personas?"
+  priority.headline: "Población total aún no alcanzada"
+  priority.explainer: >-
+    La puntuación de prioridad es una media ponderada de las columnas
+    siguientes: ordena por cualquier columna para ver qué impulsa el ranking.
+  priority.col_country: "País"
+  priority.col_priority: "Prioridad"
+  priority.col_people: "Personas afectadas"
+  priority.col_stagnation: "Sin mejora"
+  priority.needs_history: >-
+    La puntuación de prioridad para {indicator} necesita más datos históricos
+    de los que tenemos cargados ahora mismo.
+  priority.saturation_excluded: >-
+    {count} lugares que ya están en el techo de saturación o cerca ({ceiling})
+    se excluyen del componente de estancamiento y se tratan como pendiente
+    cero.
+
+  lineage.title: "Fuentes y trazabilidad"
+  lineage.show: "Ver de dónde salen estas cifras"
+  lineage.summary: >-
+    {places} países con datos · {geometries} países en el mapa ·
+    {indicators} indicadores · {sources} publicadores.
+  lineage.checks_summary_clean: "Las {total} comprobaciones cruzadas coinciden."
+  lineage.checks_summary_failing: "{failed} de {total} comprobaciones cruzadas discrepan; abre para ver el detalle."
+  lineage.sources_heading: "Fuentes"
+  lineage.col_source: "Fuente"
+  lineage.col_provides: "Aporta"
+  lineage.col_provenance: "Id de procedencia"
+  lineage.col_url: "Publicado en"
+  lineage.col_period: "Periodo de observación"
+  lineage.col_access: "Obtenido de"
+  lineage.no_licence: >-
+    Esta API no publica ningún campo de licencia, por lo que no se muestra
+    ninguna. Consulta el portal del publicador antes de redistribuir.
+  lineage.selected_heading: "Qué registros se seleccionaron"
+  lineage.col_parameter: "Parámetro"
+  lineage.col_value: "Valor"
+  lineage.fields_heading: "De dónde sale cada cifra"
+  lineage.col_shown: "Se muestra como"
+  lineage.col_field: "Variable en la fuente"
+  lineage.applied_heading: "Qué se le hizo"
+  lineage.checks_heading: "Comprobaciones cruzadas"
+  lineage.checks_note: >-
+    Cifras con dos derivaciones independientes, comparadas. Se calculan a
+    partir de la respuesta obtenida, no se afirman aquí.
+  lineage.agrees: "coinciden"
+  lineage.differs: "discrepan"
+  lineage.of_total: "{agree} de {total}"
+  lineage.cite_heading: "Cómo citar"
+  lineage.citation: "{citations}\nObtenido el {generated}. Catálogo enriquecido el {catalog}."
+  lineage.untranslated: >-
+    Los identificadores de variables y de procedencia y los nombres de países
+    se muestran en su forma original.
+  transform.fetch: "Se obtuvieron todos los países en una sola petición sobre la jerarquía de contención."
+  transform.latest: "Se conservó la observación más reciente por país."
+  transform.long: "Se reestructuró la respuesta a una fila por país y fecha."
+  transform.names: "Se resolvieron los identificadores de lugar a nombres de países."
+  transform.join: "Se unió con la geometría del mapa por el identificador de lugar, sin tabla de equivalencias."
+  transform.saturation: "Se excluyeron del ajuste de tendencia los países en el techo de saturación."
+  transform.denominator: "Se multiplicó por la población para convertir una tasa en personas."
+  transform.merge: "Se emparejaron las dos fuentes por país y año de referencia."
+  lineage.check.map_join: "Observaciones frente a geometría del mapa"
+  lineage.detail.map_join: "Todo país con datos debería tener una forma sobre la que dibujarlo."
+  lineage.check.catalog_coverage: "Cobertura del catálogo frente a la respuesta en vivo"
+  lineage.detail.catalog_coverage: "Lo que registró `make enrich`, frente a lo que devuelve la API ahora."
+  lineage.check.unit_drift: "Unidad del catálogo frente a la unidad servida"
+  lineage.detail.unit_drift: "La unidad registrada al enriquecer debería coincidir con cada faceta servida."
+  lineage.check.single_facet: "Un solo publicador por mapa"
+  lineage.detail.single_facet: "Más de una faceta significa que el mapa mezcla publicadores."
+  lineage.check.same_year: "Mismo año de referencia"
+  lineage.detail.same_year: "Países que informan el año modal, frente a todos los que informan."
+  lineage.check.cross_source: "Concordancia entre las dos fuentes"
+  lineage.detail.cross_source: "Ninguna fuente deriva de la otra, así que una diferencia es una discrepancia real."
+
+indicators:
+  sdg_elec_access: "Acceso a la electricidad"
+  sdg_renew_capacity: "Capacidad renovable instalada"
+  sdg_renew_share: "Proporción de energías renovables en el consumo"
+  sdg_energy_intensity: "Intensidad energética de la energía primaria"
+  who_clean_cooking: "Uso de combustibles limpios para cocinar"
+  sdg_safe_water: "Agua potable gestionada de forma segura"
+  sdg_forest_area: "Superficie forestal (% de la tierra)"
+  unicef_population: "Población total"
+  worldbank_elec_access: "Acceso a la electricidad (Banco Mundial)"
+
+  wb_elec_access_rural: "Acceso a la electricidad, zonas rurales"
+  wb_elec_access_urban: "Acceso a la electricidad, zonas urbanas"
+  wb_transmission_losses: "Pérdidas de transmisión y distribución"
+  wb_firm_outages: "Empresas que sufren cortes de electricidad"
+  wb_elec_consumption_pc: "Consumo de electricidad per cápita"
+  wb_renew_output: "Proporción renovable de la generación eléctrica"
+topics:
+  energy_access: "Acceso a la energía y renovables (ODS7)"
+  water_sanitation: "Agua y saneamiento (ODS6)"
+  land_forests: "Tierra y bosques (ODS15)"
+  energy_supply: "Generación y mezcla energética (ODS7.2)"
+  energy_delivery: "Distribución energética, pérdidas y fiabilidad"

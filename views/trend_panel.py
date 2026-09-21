@@ -20,6 +20,8 @@ import streamlit as st
 from analytics.anomalies import Anomaly
 from analytics.trends import TrendResult
 from recipe.attribution import Citation, require_citations
+from recipe.i18n import Translator
+from views.palette import active_tokens, apply_chart_chrome
 
 _KIND_LABELS = {
     "spike": "Sudden jump/drop",
@@ -32,6 +34,7 @@ def render_trend_panel(
     long_df: pd.DataFrame,
     place_dcids: list[str],
     citations: list[Citation],
+    t: Translator,
     trends: dict[str, TrendResult] | None = None,
     saturated_places: set[str] | None = None,
     value_col: str = "value",
@@ -54,14 +57,14 @@ def render_trend_panel(
     anomalies = anomalies or []
     place_names = place_names or {}
 
-    st.subheader("Trends over time")
+    st.subheader(t.t("trends.title"))
 
     if total_places is not None:
         st.caption(f"Showing {len(place_dcids)} of {total_places} countries.")
 
     df = long_df[long_df["place_dcid"].isin(place_dcids)].sort_values("date")
     if df.empty:
-        st.info("No time-series data for the selected places.")
+        st.info(t.t("trends.empty"))
         return
 
     plotted = set(place_dcids)
@@ -69,8 +72,13 @@ def render_trend_panel(
     for a in anomalies:
         anomalies_by_place.setdefault(a.place_dcid, []).append(a)
 
+    tok = active_tokens()
     fig = go.Figure()
-    for place_dcid in place_dcids:
+    # Hues assigned in fixed slot order, never cycled: the same country keeps
+    # its colour whatever else is on screen, and the order is what makes the
+    # set separable under colour-vision deficiency.
+    for slot, place_dcid in enumerate(place_dcids):
+        color = tok.categorical[slot % len(tok.categorical)]
         place_df = df[df["place_dcid"] == place_dcid]
         if place_df.empty:
             continue
@@ -79,7 +87,11 @@ def render_trend_panel(
             if "place_name" in place_df.columns
             else place_dcid
         )
-        label = f"{name} (already at max)" if place_dcid in saturated_places else name
+        label = (
+            t.t("trends.saturated_legend", place=name)
+            if place_dcid in saturated_places
+            else name
+        )
 
         fig.add_trace(
             go.Scatter(
@@ -87,6 +99,9 @@ def render_trend_panel(
                 y=place_df[value_col],
                 mode="lines+markers",
                 name=label,
+                line=dict(color=color, width=2),
+                marker=dict(size=8, color=color, line=dict(width=2, color=tok.surface)),
+                hovertemplate="%{y}<extra>" + label + "</extra>",
             )
         )
 
@@ -99,8 +114,13 @@ def render_trend_panel(
                     x=place_df["date"],
                     y=fit_y,
                     mode="lines",
-                    line=dict(dash="dot"),
-                    name=f"{name} trend ({trend.slope:+.2f}/yr)",
+                    # Same hue as its series, dotted: the fit is an annotation
+                    # on that country, not a second entity.
+                    line=dict(dash="dot", color=color, width=2),
+                    hoverinfo="skip",
+                    name=t.t(
+                        "trends.fit_legend", place=name, slope=t.signed(trend.slope)
+                    ),
                     showlegend=True,
                 )
             )
@@ -123,17 +143,17 @@ def render_trend_panel(
             )
 
     fig.update_layout(
-        yaxis_title=unit_display or "value",
-        xaxis_title="Year",
-        legend=dict(orientation="h", yanchor="bottom", y=1.02),
-        margin=dict(t=60),
+        yaxis_title=unit_display or t.t("trends.axis_value"),
+        xaxis_title=t.t("trends.axis_year"),
+        hovermode="x unified",
     )
+    apply_chart_chrome(fig, tok)
     st.plotly_chart(fig, use_container_width=True)
 
     _render_anomaly_summary(anomalies, plotted, place_names)
 
     for c in citations:
-        st.caption(f"Source: {c.render()}")
+        st.caption(t.t("source.prefix", citation=c.render(t)))
 
 
 def _render_anomaly_summary(

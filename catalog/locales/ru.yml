@@ -1,0 +1,240 @@
+# Russian. Key set must match en.yml exactly (tests/test_i18n.py enforces).
+# Indicator names follow UNSD's Russian SDG terminology where it exists;
+# needs native-speaker review before this is shown to a UN audience.
+version: 1
+locale: ru
+name: Русский
+direction: ltr
+
+numbers:
+  decimal: ","
+  group: " "
+  million: "млн"
+  list_separator: ", "
+
+ui:
+  app.title: "Межучрежденческая панель ЦУР ООН"
+  app.caption: >-
+    Многократно используемый рецепт получения, проверки и объединения
+    показателей разных учреждений ООН — без нового кода под каждый показатель.
+
+  sidebar.language: "Язык"
+  sidebar.topic_filter: "Сузить список по теме (необязательно)"
+  picker.other_topic: "Прочее"
+  sidebar.indicator: "Показатель"
+  sidebar.compare: "Сравнить с"
+  sidebar.compare_none: "(нет)"
+  sidebar.weights_header: "**Веса приоритетной оценки**"
+  sidebar.weight_people: "Насколько важно: затронутое население"
+  sidebar.weight_stagnation: "Насколько важно: отсутствие прогресса"
+
+  tab.map: "Карта"
+  tab.trends: "Динамика"
+  tab.gap: "Анализ разрывов"
+  tab.priority: "Приоритет"
+  tab.coverage: "Охват данных"
+  tab.sources: "Источники"
+  tab.insights: "Выводы"
+
+  source.prefix: "Источник: {citation}"
+  source.unit: "единица: {unit}"
+
+  rtl.notice: >-
+    Текст отображается справа налево. Карта и графики не зеркалятся — они
+    по-прежнему читаются слева направо.
+
+  warn.no_indicators: "Ни один показатель не подходит под этот тематический фильтр — попробуйте его снять."
+  warn.no_observations: "Нет наблюдений для показателя «{indicator}»."
+  info.need_history: >-
+    Этому представлению нужно больше исторических данных, чем загружено
+    сейчас.
+  info.need_two_indicators: >-
+    Этому представлению нужно не менее двух показателей по теме; сейчас
+    доступен только один.
+  info.need_date_range: >-
+    Этому представлению нужен известный диапазон дат для показателя, который
+    пока не настроен.
+
+  map.coverage: "Данные по этому показателю есть у {matched} из {total} территорий на карте."
+  map.no_data_legend: "⬜ Серый = данных по этой стране нет."
+  map.no_data_swatch: "Нет данных"
+  map.this_indicator: "этот показатель"
+  map.hover_hint: "ℹ️ При наведении курсора на страну показывается её значение по показателю **{metric}**{unit} — то же число, на котором основана насыщенность цвета."
+  map.excluded: >-
+    Исключено территорий с данными, но без геометрии на карте — {count}:
+    {places}. На карте ниже они не показаны.
+
+  trends.title: "Динамика во времени"
+  trends.empty: "Для выбранных территорий нет временных рядов."
+  trends.saturated_legend: "{place} (уже на максимуме)"
+  trends.fit_legend: "{place}, тренд ({slope}/год)"
+  trends.axis_year: "Год"
+  trends.axis_value: "значение"
+
+  coverage.title: "Охват данных"
+  coverage.places_reporting: "Территорий с отчётностью"
+  coverage.completeness: "Полнота"
+  coverage.missing_cells: "{count} пропущенных ячеек"
+  coverage.axis_year: "Год"
+  coverage.axis_place: "Территория"
+  coverage.axis_observed: "Наблюдение"
+  coverage.stalest_header: "**Наименее актуальные страны** (самый ранний последний отчётный год)"
+  coverage.col_latest_year: "Последний отчётный год"
+  coverage.download: "Скачать пропущенные ячейки (территория, год) в CSV"
+
+  compare.title: "Можно ли сравнивать эти два показателя?"
+  compare.pair: "**{left}** ({left_source}) × **{right}** ({right_source})"
+  compare.external_source: "внешний источник"
+  compare.outside_un: "🌐 Один из источников находится вне статистической системы ООН."
+  compare.countries_both: "Страны, охваченные обоими"
+  compare.countries_both_value: "{shared} из {total}"
+  compare.countries_only_one: "{count} стран(ы) только в одном источнике"
+  compare.years_both: "Годы, по которым отчитываются оба источника"
+  compare.none_marker: "—"
+  compare.verdict_direct: >-
+    ✅ Можно сравнивать напрямую — одинаковое измерение, сопоставимая шкала.
+  compare.verdict_axes_only: >-
+    ⚠️ Их можно показать рядом, но нельзя вычитать или делить — они измерены
+    в разных единицах.
+  compare.verdict_blocked: >-
+    🚫 Сравнить нельзя — нет общих стран или лет.
+  compare.dimension_shared: "- Оба источника дают одинаковую разбивку: **{dimension}**"
+  compare.dimension_unmatched: >-
+    - **{dimension}**: источники категоризируют это по-разному, и сопоставить
+    их не удалось
+
+  gap.title: "Анализ разрывов: где ресурс охватит больше всего людей?"
+  gap.empty: "Нет пересекающихся наблюдений для построения графика."
+  gap.cannot_plot: "Невозможно построить график {x} против {y}: {reasons}"
+  gap.cannot_crossplot: "Перекрёстное построение невозможно: {reasons}"
+  gap.headroom_annotation: "низко / низко — наибольший потенциал роста"
+  gap.axes_only_note: >-
+    Единицы измерения этих показателей различаются: построение только по
+    отдельным осям. Разности и отношения между ними отключены.
+  gap.table_expander: "Показать погодовую сравнительную таблицу"
+  gap.col_country: "Страна"
+  gap.col_indicator_year: "Год: {indicator}"
+  gap.col_difference: "Разность"
+
+  gap.region_filter: "Регион"
+  gap.region_all: "Все регионы"
+
+  blocker.no_places: "У этих двух источников нет ни одной общей страны."
+  blocker.no_years: "У этих двух источников нет ни одного общего отчётного года."
+
+  insights.convergence_title: "**Догоняют ли отстающие страны?** ({indicator}, {start}–{end})"
+  insights.convergence_empty: >-
+    Недостаточно территорий с данными за оба года, чтобы проверить
+    сближение.
+  insights.catch_up_yes: "Да, есть некоторое сближение"
+  insights.catch_up_no: "Сближение не обнаружено"
+  insights.catch_up_signal: "Сигнал сближения"
+  insights.stats_expander: "Показать статистику за этим выводом"
+  insights.beta: "β (отрицательная = сходимость)"
+  insights.ci: "95 % ДИ"
+  insights.r_squared: "R²"
+  insights.groups_title: "**Группы схожих стран**"
+  insights.groups_empty: >-
+    Недостаточно территорий с полными данными по выбранным показателям.
+  insights.k_expander: "Как мы выбрали число групп"
+  insights.k_caption: "{k} групп(ы) выбрано по силуэтному коэффициенту ({scores})."
+  insights.group_label: "Группа {n}"
+  insights.group_axis: "Группа"
+  insights.countries_axis: "Страны"
+
+  priority.title: "Приоритет: где этот показатель охватит больше всего людей?"
+  priority.headline: "Общая численность ещё не охваченного населения"
+  priority.explainer: >-
+    Приоритетная оценка — это взвешенное среднее приведённых ниже столбцов;
+    отсортируйте по любому столбцу, чтобы увидеть, что определяет рейтинг.
+  priority.col_country: "Страна"
+  priority.col_priority: "Приоритет"
+  priority.col_people: "Затронутое население"
+  priority.col_stagnation: "Без прогресса"
+  priority.needs_history: >-
+    Для приоритетной оценки показателя «{indicator}» нужно больше
+    исторических данных, чем загружено сейчас.
+  priority.saturation_excluded: >-
+    {count} территорий уже на уровне насыщения или близко к нему ({ceiling});
+    они исключены из компонента стагнации и считаются с нулевым наклоном.
+
+  lineage.title: "Источники и происхождение данных"
+  lineage.show: "Показать, откуда эти цифры"
+  lineage.summary: >-
+    {places} стран с данными · {geometries} стран на карте ·
+    {indicators} показателей · {sources} издателей.
+  lineage.checks_summary_clean: "Все {total} перекрёстных проверок сходятся."
+  lineage.checks_summary_failing: "{failed} из {total} перекрёстных проверок расходятся — откройте для подробностей."
+  lineage.sources_heading: "Источники"
+  lineage.col_source: "Источник"
+  lineage.col_provides: "Предоставляет"
+  lineage.col_provenance: "Идентификатор происхождения"
+  lineage.col_url: "Опубликовано на"
+  lineage.col_period: "Период наблюдения"
+  lineage.col_access: "Получено через"
+  lineage.no_licence: >-
+    Этот API не публикует поле лицензии, поэтому лицензия не показана. Перед
+    распространением сверьтесь с порталом самого издателя.
+  lineage.selected_heading: "Какие записи были отобраны"
+  lineage.col_parameter: "Параметр"
+  lineage.col_value: "Значение"
+  lineage.fields_heading: "Откуда взята каждая цифра"
+  lineage.col_shown: "Показано как"
+  lineage.col_field: "Переменная в источнике"
+  lineage.applied_heading: "Что с ними сделали"
+  lineage.checks_heading: "Перекрёстные проверки"
+  lineage.checks_note: >-
+    Сопоставлены цифры, имеющие два независимых способа получения. Они
+    вычисляются из полученного ответа, а не утверждаются здесь.
+  lineage.agrees: "сходятся"
+  lineage.differs: "расходятся"
+  lineage.of_total: "{agree} из {total}"
+  lineage.cite_heading: "Как цитировать"
+  lineage.citation: "{citations}\nПолучено {generated}. Каталог обогащён {catalog}."
+  lineage.untranslated: >-
+    Идентификаторы переменных и происхождения, а также названия стран
+    показаны в исходном виде.
+  transform.fetch: "Все страны получены одним запросом по иерархии вложенности."
+  transform.latest: "Оставлено самое свежее наблюдение по каждой стране."
+  transform.long: "Ответ преобразован к виду «одна строка на страну и дату»."
+  transform.names: "Идентификаторы территорий сопоставлены с названиями стран."
+  transform.join: "Соединение с геометрией карты по идентификатору территории, без таблицы соответствий."
+  transform.saturation: "Страны на уровне насыщения исключены из подгонки тренда."
+  transform.denominator: "Умножено на численность населения, чтобы перевести долю в людей."
+  transform.merge: "Два источника сопоставлены по стране и отчётному году."
+  lineage.check.map_join: "Наблюдения и геометрия карты"
+  lineage.detail.map_join: "У каждой страны с данными должна быть фигура, на которой их рисовать."
+  lineage.check.catalog_coverage: "Охват в каталоге и текущий ответ"
+  lineage.detail.catalog_coverage: "Что записал `make enrich` — против того, что API возвращает сейчас."
+  lineage.check.unit_drift: "Единица в каталоге и выданная единица"
+  lineage.detail.unit_drift: "Единица, записанная при обогащении, должна совпадать с каждой выданной фасетой."
+  lineage.check.single_facet: "Один издатель на карту"
+  lineage.detail.single_facet: "Больше одной фасеты означает, что карта смешивает издателей."
+  lineage.check.same_year: "Один и тот же отчётный год"
+  lineage.detail.same_year: "Страны с модальным годом против всех отчитывающихся стран."
+  lineage.check.cross_source: "Согласие между двумя источниками"
+  lineage.detail.cross_source: "Ни один источник не выведен из другого, поэтому разрыв — реальное расхождение."
+
+indicators:
+  sdg_elec_access: "Доступ к электроэнергии"
+  sdg_renew_capacity: "Установленная мощность ВИЭ"
+  sdg_renew_share: "Доля возобновляемой энергии в потреблении"
+  sdg_energy_intensity: "Энергоёмкость первичной энергии"
+  who_clean_cooking: "Использование чистого топлива для приготовления пищи"
+  sdg_safe_water: "Безопасно управляемая питьевая вода"
+  sdg_forest_area: "Площадь лесов (% суши)"
+  unicef_population: "Общая численность населения"
+  worldbank_elec_access: "Доступ к электроэнергии (Всемирный банк)"
+
+  wb_elec_access_rural: "Доступ к электроэнергии, сельская местность"
+  wb_elec_access_urban: "Доступ к электроэнергии, городская местность"
+  wb_transmission_losses: "Потери при передаче и распределении"
+  wb_firm_outages: "Предприятия, сталкивающиеся с отключениями электроэнергии"
+  wb_elec_consumption_pc: "Потребление электроэнергии на душу населения"
+  wb_renew_output: "Доля возобновляемых источников в выработке электроэнергии"
+topics:
+  energy_access: "Доступ к энергии и ВИЭ (ЦУР 7)"
+  water_sanitation: "Вода и санитария (ЦУР 6)"
+  land_forests: "Земля и леса (ЦУР 15)"
+  energy_supply: "Производство энергии и её структура (ЦУР7.2)"
+  energy_delivery: "Передача энергии, потери и надёжность"

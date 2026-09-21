@@ -1,0 +1,62 @@
+# Theme tokens. These mirror views/palette.py -- the same validated values, so
+# Streamlit's own chrome (widgets, dataframes, metrics) and the charts agree.
+#
+# Light and dark are both written out rather than letting one invert into the
+# other: the dark categorical steps are the same eight hues re-stepped for the
+# dark surface and validated against it, which an automatic flip cannot do.
+#
+# chartCategoricalColors is in the fixed assignment order. It is never cycled;
+# a chart that would need a ninth series folds into "Other" or facets instead.
+
+[theme]
+base = "light"
+font = 'system-ui, -apple-system, "Segoe UI", sans-serif'
+headingFont = 'system-ui, -apple-system, "Segoe UI", sans-serif'
+codeFont = 'ui-monospace, SFMono-Regular, Menlo, monospace'
+baseRadius = "0.5rem"
+buttonRadius = "0.5rem"
+showWidgetBorder = true
+
+[theme.light]
+primaryColor = "#2a78d6"
+backgroundColor = "#fcfcfb"
+secondaryBackgroundColor = "#f9f9f7"
+textColor = "#0b0b0b"
+linkColor = "#256abf"
+borderColor = "#e1e0d9"
+dataframeBorderColor = "#e1e0d9"
+dataframeHeaderBackgroundColor = "#f9f9f7"
+codeBackgroundColor = "#f9f9f7"
+chartCategoricalColors = [
+  "#2a78d6", "#eb6834", "#1baf7a", "#eda100",
+  "#e87ba4", "#008300", "#4a3aa7", "#e34948",
+]
+chartSequentialColors = [
+  "#cde2fb", "#9ec5f4", "#6da7ec", "#3987e5",
+  "#256abf", "#184f95", "#0d366b",
+]
+chartDivergingColors = [
+  "#9e2f2f", "#e34948", "#f0efec", "#2a78d6", "#184f95",
+]
+
+[theme.dark]
+primaryColor = "#3987e5"
+backgroundColor = "#1a1a19"
+secondaryBackgroundColor = "#0d0d0d"
+textColor = "#ffffff"
+linkColor = "#86b6ef"
+borderColor = "#2c2c2a"
+dataframeBorderColor = "#2c2c2a"
+dataframeHeaderBackgroundColor = "#0d0d0d"
+codeBackgroundColor = "#0d0d0d"
+chartCategoricalColors = [
+  "#3987e5", "#d95926", "#199e70", "#c98500",
+  "#d55181", "#008300", "#9085e9", "#e66767",
+]
+chartSequentialColors = [
+  "#0d366b", "#184f95", "#256abf", "#3987e5",
+  "#6da7ec", "#9ec5f4", "#cde2fb",
+]
+chartDivergingColors = [
+  "#c94b4b", "#e66767", "#383835", "#3987e5", "#1c5cab",
+]

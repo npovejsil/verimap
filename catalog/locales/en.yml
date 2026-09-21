@@ -1,0 +1,243 @@
+# English is the reference locale. Every other file in this directory must
+# carry exactly these keys -- tests/test_i18n.py enforces that, so a new
+# string added here fails the suite until all six languages have it.
+#
+# Interpolation uses named {placeholders}, never concatenation: word order
+# differs across these languages and a placeholder has to be free to move
+# within the sentence.
+#
+# Not translated on purpose (they stay English in every locale): the
+# convergence ceiling warning, the archetype disclaimer, the cross-year
+# warning, the disagreement callout, and the coverage grid caption. Those are
+# nuanced statistical claims where a bad translation misleads rather than
+# merely reads awkwardly.
+version: 1
+locale: en
+name: English
+direction: ltr
+
+numbers:
+  decimal: "."
+  group: ","
+  million: "M"
+  list_separator: ", "
+
+ui:
+  app.title: "UN SDG Cross-Agency Dashboard"
+  app.caption: >-
+    A reusable recipe for retrieving, validating, and joining indicators
+    across UN agencies — no new code per indicator.
+
+  sidebar.language: "Language"
+  sidebar.topic_filter: "Narrow the list by topic (optional)"
+  picker.other_topic: "Other"
+  sidebar.indicator: "Indicator"
+  sidebar.compare: "Compare against"
+  sidebar.compare_none: "(none)"
+  sidebar.weights_header: "**Priority score weights**"
+  sidebar.weight_people: "How much to prioritize: people affected"
+  sidebar.weight_stagnation: "How much to prioritize: not improving"
+
+  tab.map: "Map"
+  tab.trends: "Trends"
+  tab.gap: "Gap analysis"
+  tab.priority: "Priority"
+  tab.coverage: "Coverage"
+  tab.sources: "Sources"
+  tab.insights: "Insights"
+
+  source.prefix: "Source: {citation}"
+  source.unit: "unit: {unit}"
+
+  rtl.notice: >-
+    Text is shown right-to-left. The map and charts are not mirrored — they
+    still read left-to-right.
+
+  warn.no_indicators: "No indicators match that topic filter yet — try clearing it."
+  warn.no_observations: "No observations returned for {indicator}."
+  info.need_history: "This view needs more historical data than we have loaded right now."
+  info.need_two_indicators: >-
+    This view needs at least two indicators set up for this topic — there's
+    only one available right now.
+  info.need_date_range: >-
+    This view needs a known date range for this indicator, which isn't set up
+    yet.
+
+  map.coverage: "{matched} of {total} places on the map have data for this indicator."
+  map.no_data_legend: "⬜ Grey = no data available for this country."
+  map.no_data_swatch: "No data"
+  map.this_indicator: "this indicator"
+  map.hover_hint: "ℹ️ Hovering over a country shows its value for **{metric}**{unit} — the same number the colour shading is based on."
+  map.excluded: >-
+    Excluded {count} places with data but no map geometry: {places}. Not
+    rendered on the map below.
+
+  trends.title: "Trends over time"
+  trends.empty: "No time-series data for the selected places."
+  trends.saturated_legend: "{place} (already at max)"
+  trends.fit_legend: "{place} trend ({slope}/yr)"
+  trends.axis_year: "Year"
+  trends.axis_value: "value"
+
+  coverage.title: "Data coverage"
+  coverage.places_reporting: "Places reporting"
+  coverage.completeness: "Completeness"
+  coverage.missing_cells: "{count} missing cells"
+  coverage.axis_year: "Year"
+  coverage.axis_place: "Place"
+  coverage.axis_observed: "Observed"
+  coverage.stalest_header: "**Least up-to-date countries** (oldest latest-reported year)"
+  coverage.col_latest_year: "Most recent year reported"
+  coverage.download: "Download missing (place, year) cells as CSV"
+
+  compare.title: "Can we compare these two?"
+  compare.pair: "**{left}** ({left_source}) × **{right}** ({right_source})"
+  compare.external_source: "external source"
+  compare.outside_un: "🌐 One of these sources is outside the UN statistical system."
+  compare.countries_both: "Countries covered by both"
+  compare.countries_both_value: "{shared} of {total}"
+  compare.countries_only_one: "{count} countries only in one source"
+  compare.years_both: "Years both sources report"
+  compare.none_marker: "—"
+  compare.verdict_direct: "✅ These can be compared directly — same measurement, comparable scale."
+  compare.verdict_axes_only: >-
+    ⚠️ These can be shown side by side, but not subtracted or divided —
+    they're measured in different units.
+  compare.verdict_blocked: "🚫 These can't be compared — no overlapping countries or years."
+  compare.dimension_shared: "- Both sources break this down the same way: **{dimension}**"
+  compare.dimension_unmatched: >-
+    - **{dimension}**: the two sources categorize this differently and we
+    couldn't line them up
+
+  gap.title: "Gap analysis: where does a resource move the most people?"
+  gap.empty: "No overlapping observations to plot."
+  gap.cannot_plot: "Cannot plot {x} against {y}: {reasons}"
+  gap.cannot_crossplot: "Cannot cross-plot: {reasons}"
+  gap.headroom_annotation: "low / low — highest headroom"
+  gap.axes_only_note: >-
+    Units differ between these indicators — plotted on separate axes only.
+    Differences/ratios between them are disabled.
+  gap.table_expander: "See the year-by-year comparison table"
+  gap.col_country: "Country"
+  gap.col_indicator_year: "{indicator} year"
+  gap.col_difference: "Difference"
+
+  gap.region_filter: "Region"
+  gap.region_all: "All regions"
+
+  blocker.no_places: "These two sources have no countries in common."
+  blocker.no_years: "These two sources have no reporting years in common."
+
+  insights.convergence_title: "**Are lagging countries catching up?** ({indicator}, {start}–{end})"
+  insights.convergence_empty: "Not enough places with data in both years to check for catch-up."
+  insights.catch_up_yes: "Yes, some catch-up"
+  insights.catch_up_no: "No catch-up detected"
+  insights.catch_up_signal: "Catch-up signal"
+  insights.stats_expander: "Show the statistics behind this"
+  insights.beta: "β (negative = convergence)"
+  insights.ci: "95% CI"
+  insights.r_squared: "R²"
+  insights.groups_title: "**Groups of similar countries**"
+  insights.groups_empty: "Not enough places with complete data across the selected indicators."
+  insights.k_expander: "How we chose the number of groups"
+  insights.k_caption: "{k} groups chosen by silhouette score ({scores})."
+  insights.group_label: "Group {n}"
+  insights.group_axis: "Group"
+  insights.countries_axis: "Countries"
+
+  priority.title: "Priority: where does more of this indicator reach the most people?"
+  priority.headline: "Total population not yet reached"
+  priority.explainer: >-
+    The priority score is a weighted average of the columns below — sort by
+    any single column to see what's driving the ranking.
+  priority.col_country: "Country"
+  priority.col_priority: "Priority"
+  priority.col_people: "People affected"
+  priority.col_stagnation: "Not improving"
+  priority.needs_history: >-
+    Priority scoring for {indicator} needs more historical data than we have
+    loaded right now.
+  priority.saturation_excluded: >-
+    {count} places already at/near the saturation ceiling ({ceiling}) are
+    excluded from the stagnation component and treated as zero-slope.
+
+  lineage.title: "Sources & lineage"
+  lineage.show: "Show where these numbers come from"
+  lineage.summary: >-
+    {places} countries with data · {geometries} countries on the map ·
+    {indicators} indicators · {sources} publishers.
+  lineage.checks_summary_clean: "All {total} cross-checks agree."
+  lineage.checks_summary_failing: "{failed} of {total} cross-checks disagree — open for detail."
+  lineage.sources_heading: "Sources"
+  lineage.col_source: "Source"
+  lineage.col_provides: "Provides"
+  lineage.col_provenance: "Provenance id"
+  lineage.col_url: "Published at"
+  lineage.col_period: "Observation period"
+  lineage.col_access: "Accessed via"
+  lineage.no_licence: >-
+    This API publishes no licensing field, so no licence is shown. Check the
+    publisher's own portal before redistributing.
+  lineage.selected_heading: "Which records were selected"
+  lineage.col_parameter: "Parameter"
+  lineage.col_value: "Value"
+  lineage.fields_heading: "Where each number comes from"
+  lineage.col_shown: "Shown as"
+  lineage.col_field: "Variable in the source"
+  lineage.applied_heading: "What was done to it"
+  lineage.checks_heading: "Cross-checks"
+  lineage.checks_note: >-
+    Figures with two independent derivations, compared. These are computed
+    from the response in hand, not asserted here.
+  lineage.agrees: "agrees"
+  lineage.differs: "differs"
+  lineage.of_total: "{agree} of {total}"
+  lineage.cite_heading: "Cite this"
+  lineage.citation: "{citations}\nRetrieved {generated}. Catalog enriched {catalog}."
+  lineage.untranslated: >-
+    Variable ids, provenance ids and country names are shown in their
+    original form.
+  transform.fetch: "Fetched every country in one request against the containment hierarchy."
+  transform.latest: "Kept the most recent observation per country."
+  transform.long: "Reshaped the response into one row per country and date."
+  transform.names: "Resolved place ids to country names."
+  transform.join: "Joined to map geometry on the place id, with no crosswalk table."
+  transform.saturation: "Excluded countries at the saturation ceiling from trend fitting."
+  transform.denominator: "Multiplied by population to convert a rate into people."
+  transform.merge: "Matched the two sources on country and reference year."
+  lineage.check.map_join: "Observations vs map geometry"
+  lineage.detail.map_join: "Every country with data should have a shape to draw it on."
+  lineage.check.catalog_coverage: "Catalog coverage vs live response"
+  lineage.detail.catalog_coverage: "What `make enrich` recorded, against what the API returns now."
+  lineage.check.unit_drift: "Catalog unit vs served unit"
+  lineage.detail.unit_drift: "The unit recorded at enrich time should match every facet served."
+  lineage.check.single_facet: "Single publisher per map"
+  lineage.detail.single_facet: "More than one facet means the map blends publishers."
+  lineage.check.same_year: "Same reference year"
+  lineage.detail.same_year: "Countries reporting the modal year, against all reporting countries."
+  lineage.check.cross_source: "Agreement between the two sources"
+  lineage.detail.cross_source: "Neither source is derived from the other, so a gap is a real discrepancy."
+
+indicators:
+  sdg_elec_access: "Electricity access"
+  sdg_renew_capacity: "Installed renewable capacity"
+  sdg_renew_share: "Renewable share of energy consumption"
+  sdg_energy_intensity: "Energy intensity of primary energy"
+  who_clean_cooking: "Clean cooking fuel reliance"
+  sdg_safe_water: "Safely managed drinking water"
+  sdg_forest_area: "Forest area (% of land)"
+  unicef_population: "Total population"
+  worldbank_elec_access: "Electricity access (World Bank)"
+
+  wb_elec_access_rural: "Electricity access, rural"
+  wb_elec_access_urban: "Electricity access, urban"
+  wb_transmission_losses: "Transmission & distribution losses"
+  wb_firm_outages: "Firms experiencing power outages"
+  wb_elec_consumption_pc: "Electricity consumption per capita"
+  wb_renew_output: "Renewable share of electricity output"
+topics:
+  energy_access: "Energy access & renewables (SDG7)"
+  water_sanitation: "Water & sanitation (SDG6)"
+  land_forests: "Land & forests (SDG15)"
+  energy_supply: "Energy generation & mix (SDG7.2)"
+  energy_delivery: "Energy delivery, losses & reliability"

@@ -29,18 +29,23 @@ from recipe.frames import (
     series_within_to_long,
 )
 from recipe.geography import audit_join, country_to_continent, fetch_country_geojson
+from recipe.i18n import DEFAULT_LOCALE, get_translator, load_locales
 from recipe.keymatch import compute_join_spec
+from recipe.lineage import build_lineage, cross_source_check
 from recipe.validation import check_mixed_dates
 from views.bivariate import render_bivariate
 from views.choropleth import render_choropleth
 from views.compatibility import render_compatibility_panel
 from views.coverage_panel import render_coverage_panel
 from views.insights_panel import render_archetypes, render_convergence
+from views.lineage_panel import render_lineage_panel
 from views.picker import indicator_option_label
 from views.priority_table import render_priority_table
 from views.sources_panel import render_sources_panel
 from views.trend_panel import render_trend_panel
 
+# Runs at import, before any widget exists, so this one string cannot follow
+# the language switcher -- it stays English rather than lagging a rerun behind.
 st.set_page_config(page_title="UN SDG Cross-Agency Dashboard", layout="wide")
 
 
@@ -112,52 +117,86 @@ def _drop_stale_selection(key: str, valid: list[str]) -> None:
         del st.session_state[key]
 
 
+_LANGUAGE_ORDER = ["en", "ar", "es", "fr", "ru", "zh"]
+
+
+@cached_data(ttl=3600)
+def _load_locales():
+    return load_locales()
+
+
 def main() -> None:
     catalog = load_catalog()
 
-    st.title("UN SDG Cross-Agency Dashboard")
-    st.caption(
-        "A reusable recipe for retrieving, validating, and joining indicators "
-        "across UN agencies — no new code per indicator."
+    locales = _load_locales()
+    codes = [c for c in _LANGUAGE_ORDER if c in locales] + [
+        c for c in sorted(locales) if c not in _LANGUAGE_ORDER
+    ]
+    # Read the stored choice before building the widget so the widget's own
+    # label is already in the selected language.
+    t = get_translator(st.session_state.get("lang", DEFAULT_LOCALE), locales)
+    lang = st.sidebar.selectbox(
+        t.t("sidebar.language"),
+        codes,
+        format_func=lambda c: locales[c].name,
+        key="lang",
     )
+    t = get_translator(lang, locales)
+
+    if t.is_rtl:
+        # Streamlit has no RTL mode. This flips text and layout blocks; the
+        # pydeck map and plotly charts are not mirrored, which rtl.notice says.
+        st.markdown(
+            "<style>.stApp { direction: rtl; text-align: right; }</style>",
+            unsafe_allow_html=True,
+        )
+        st.caption(t.t("rtl.notice"))
+
+    st.title(t.t("app.title"))
+    st.caption(t.t("app.caption"))
 
     # Topic is a filter, not a gate: it narrows the list below but never
     # restricts what can be compared against what. Leaving it empty shows
     # everything, which is the default.
     topic_filter = st.sidebar.multiselect(
-        "Narrow the list by topic (optional)",
+        t.t("sidebar.topic_filter"),
         list(catalog.topics),
-        format_func=lambda k: catalog.topics[k].label,
+        format_func=lambda k: t.topic(catalog.topics[k]),
         key="topic_filter",
     )
     options = selectable_indicators(catalog, set(topic_filter))
     if not options:
-        st.warning("No indicators match that topic filter yet — try clearing it.")
+        st.warning(t.t("warn.no_indicators"))
         return
 
     _drop_stale_selection("indicator_key", [i.key for i in options])
     indicator_key = st.sidebar.selectbox(
-        "Indicator",
+        t.t("sidebar.indicator"),
         [i.key for i in options],
-        format_func=lambda k: indicator_option_label(catalog.indicators[k], catalog),
+        format_func=lambda k: indicator_option_label(catalog.indicators[k], catalog, t),
         key="indicator_key",
     )
     indicator = catalog.indicators[indicator_key]
+    indicator_label = t.indicator(indicator)
 
     # Deliberately NOT narrowed by the topic filter: comparing across topics is
     # the point, and having to clear a filter to reach the other half of the
     # catalog is the exact friction this replaced.
+    #
+    # None, not a display string, is the "no comparison" sentinel: the old
+    # "(none)" literal was the option value, the label and the branch
+    # condition at once, so translating it broke the branch.
     compare_options = [
         i.key for i in selectable_indicators(catalog) if i.key != indicator_key
     ]
-    _drop_stale_selection("compare_key", ["(none)"] + compare_options)
+    _drop_stale_selection("compare_key", [None] + compare_options)
     compare_key = st.sidebar.selectbox(
-        "Compare against",
-        ["(none)"] + compare_options,
+        t.t("sidebar.compare"),
+        [None] + compare_options,
         format_func=lambda k: (
-            "(none)"
-            if k == "(none)"
-            else indicator_option_label(catalog.indicators[k], catalog)
+            t.t("sidebar.compare_none")
+            if k is None
+            else indicator_option_label(catalog.indicators[k], catalog, t)
         ),
         key="compare_key",
     )
@@ -166,17 +205,19 @@ def main() -> None:
     long_df = _load_indicator_latest(indicator_key)
 
     if long_df.empty:
-        st.warning(f"No observations returned for {indicator.label}.")
+        st.warning(t.t("warn.no_observations", indicator=indicator_label))
         return
 
     audit = audit_join(geojson, set(long_df["place_dcid"]))
     latest_date = long_df["date"].mode().iloc[0]
-    citation = citation_for_indicator(indicator, as_of=latest_date)
+    citation = citation_for_indicator(
+        indicator, as_of=latest_date, label=indicator_label
+    )
 
     compare_indicator = None
     compare_df = pd.DataFrame()
     spec = None
-    if compare_key != "(none)":
+    if compare_key is not None:
         compare_indicator = catalog.indicators[compare_key]
         compare_df = _load_indicator_latest(compare_key)
         spec = compute_join_spec(
@@ -186,46 +227,56 @@ def main() -> None:
             set(long_df["place_dcid"]),
             set(compare_df["place_dcid"]) if not compare_df.empty else set(),
         )
-        render_compatibility_panel(indicator, compare_indicator, spec)
+        render_compatibility_panel(
+            indicator,
+            compare_indicator,
+            spec,
+            t,
+            left_label=indicator_label,
+            right_label=t.indicator(compare_indicator),
+            dimensions=catalog.dimensions,
+        )
 
-    tab_labels = ["Map", "Trends"]
+    # Tab *ids* are the dict keys and stay English; only what st.tabs displays
+    # is translated. Keying the dict by the label would break every lookup
+    # below the moment the language changes.
+    tab_keys = ["map", "trends"]
     if compare_indicator is not None:
-        tab_labels.append("Gap analysis")
+        tab_keys.append("gap")
     has_priority_tab = (
         indicator.denominator and indicator.denominator in catalog.indicators
     )
     if has_priority_tab:
-        tab_labels.append("Priority")
-    tab_labels.append("Coverage")
-    tab_labels.append("Insights")
-    tab_labels.append("Sources")
+        tab_keys.append("priority")
+    tab_keys += ["coverage", "insights", "sources"]
 
     # Computed above st.tabs() rather than inside the "Priority" tab's `with`
     # block, so the Insights tab's cross-link to priority rank is an
     # explicit dependency (a local variable) rather than relying on
     # Priority's tab body happening to execute first in script order.
     priority = (
-        _compute_priority_scores(catalog, indicator) if has_priority_tab else None
+        _compute_priority_scores(catalog, indicator, t) if has_priority_tab else None
     )
 
-    tabs = st.tabs(tab_labels)
-    tab_map = dict(zip(tab_labels, tabs))
+    tabs = st.tabs([t.t(f"tab.{k}") for k in tab_keys])
+    tab_map = dict(zip(tab_keys, tabs))
 
-    with tab_map["Map"]:
+    with tab_map["map"]:
         render_choropleth(
             geojson,
             long_df,
             audit,
             [citation],
-            indicator_label=indicator.label,
+            t,
+            indicator_label=t.indicator(indicator),
             unit_display=indicator.unit_display or indicator.unit,
         )
 
-    with tab_map["Trends"]:
-        _render_trends_tab(indicator, long_df, citation)
+    with tab_map["trends"]:
+        _render_trends_tab(indicator, long_df, citation, t)
 
     if compare_indicator is not None:
-        with tab_map["Gap analysis"]:
+        with tab_map["gap"]:
             _render_gap_analysis_tab(
                 catalog,
                 indicator,
@@ -234,20 +285,63 @@ def main() -> None:
                 compare_df,
                 spec,
                 citation,
+                t,
             )
 
-    if "Priority" in tab_map:
-        with tab_map["Priority"]:
-            _render_priority_section(indicator, priority)
+    if "priority" in tab_map:
+        with tab_map["priority"]:
+            _render_priority_section(indicator, priority, t)
 
-    with tab_map["Coverage"]:
-        _render_coverage_tab(indicator, long_df, citation)
+    with tab_map["coverage"]:
+        _render_coverage_tab(indicator, long_df, citation, t)
 
-    with tab_map["Insights"]:
-        _render_insights_tab(catalog, indicator, long_df, citation, priority)
+    with tab_map["insights"]:
+        _render_insights_tab(catalog, indicator, long_df, citation, t, priority)
 
-    with tab_map["Sources"]:
+    # Both halves of "where did this come from" live in one tab: the catalog-
+    # wide pull checks (does each source still check out at all) followed by
+    # the lineage of the readout actually on screen. Splitting them would
+    # make a reader hunt in two places for one question.
+    with tab_map["sources"]:
         render_sources_panel(_load_source_checks(), load_sources())
+
+        st.divider()
+
+        citations = [citation]
+        cross_check = None
+        if compare_indicator is not None and not compare_df.empty:
+            citations.append(
+                citation_for_indicator(
+                    compare_indicator, label=t.indicator(compare_indicator)
+                )
+            )
+            # Only meaningful when the two are on the same scale -- comparing
+            # watts per capita against a percentage would manufacture a
+            # disagreement out of a unit mismatch.
+            if spec is not None and spec.unit_relation in ("same", "same_family"):
+                cross_check = cross_source_check(
+                    dict(zip(long_df["place_dcid"], long_df["value"])),
+                    dict(zip(compare_df["place_dcid"], compare_df["value"])),
+                )
+
+        render_lineage_panel(
+            build_lineage(
+                catalog,
+                indicator,
+                _load_indicator_point_payload(indicator_key),
+                audit,
+                n_rows=len(long_df),
+                compare=compare_indicator,
+                compare_payload=(
+                    _load_indicator_point_payload(compare_key)
+                    if compare_indicator is not None
+                    else None
+                ),
+                cross_source=cross_check,
+            ),
+            citations,
+            t,
+        )
 
 
 def _render_insights_tab(
@@ -255,11 +349,12 @@ def _render_insights_tab(
     indicator,
     long_df: pd.DataFrame,
     citation,
+    t,
     priority: PriorityBundle | None,
 ) -> None:  # noqa: ANN001 - avoids import cycle noise
     series_df = _load_indicator_series(indicator.key)
     if series_df.empty or not indicator.temporal_start:
-        st.info("This view needs more historical data than we have loaded right now.")
+        st.info(t.t("info.need_history"))
         return
 
     names = (
@@ -281,10 +376,11 @@ def _render_insights_tab(
     )
     render_convergence(
         convergence,
-        indicator.label,
+        t.indicator(indicator),
         base_year,
         end_year,
         [citation],
+        t,
         movers=movers,
         place_names=names,
         priority_ranks=priority_ranks,
@@ -298,7 +394,7 @@ def _render_insights_tab(
     # sidebar topic: any indicator sharing a topic with it. The sidebar no
     # longer tracks one "current" topic, and this is the better question
     # anyway -- what else describes the same subject as the thing on screen.
-    sibling_topics = {t.key for t in catalog.topics_for_indicator(indicator.key)}
+    sibling_topics = {tp.key for tp in catalog.topics_for_indicator(indicator.key)}
     topic_indicators = [
         i
         for i in selectable_indicators(catalog, sibling_topics)
@@ -319,7 +415,7 @@ def _render_insights_tab(
             )
         )
     ]
-    feature_labels = {indicator.key: indicator.label}
+    feature_labels = {indicator.key: t.indicator(indicator)}
     for other in topic_indicators[:2]:
         other_df = _load_indicator_latest(other.key)
         if other_df.empty:
@@ -327,13 +423,10 @@ def _render_insights_tab(
         feature_frames.append(
             other_df[["place_dcid", "value"]].rename(columns={"value": other.key})
         )
-        feature_labels[other.key] = other.label
+        feature_labels[other.key] = t.indicator(other)
 
     if len(feature_frames) < 2:
-        st.info(
-            "This view needs at least two indicators covering the same "
-            "subject — there's only one available right now."
-        )
+        st.info(t.t("info.need_two_indicators"))
         return
 
     merged = feature_frames[0]
@@ -353,6 +446,7 @@ def _render_insights_tab(
         archetypes,
         feature_labels,
         [citation],
+        t,
         group_ranking=group_ranking,
         place_names=names,
         priority_ranks=priority_ranks,
@@ -361,7 +455,7 @@ def _render_insights_tab(
 
 
 def _render_trends_tab(
-    indicator, long_df: pd.DataFrame, citation
+    indicator, long_df: pd.DataFrame, citation, t
 ) -> None:  # noqa: ANN001 - Indicator/Citation, avoids import cycle noise
     default_n = 5
     # Default to the lowest values, not the highest: for a higher_is_better
@@ -378,7 +472,7 @@ def _render_trends_tab(
     )
     series_df = _load_indicator_series(indicator.key)
     if series_df.empty:
-        st.info("This view needs more historical data than we have loaded right now.")
+        st.info(t.t("info.need_history"))
         return
     names = (
         long_df.set_index("place_dcid")["place_name"].dropna().to_dict()
@@ -423,6 +517,7 @@ def _render_trends_tab(
         series_df,
         selected_places,
         [citation],
+        t,
         trends=trends,
         saturated_places=set(saturated_places),
         unit_display=indicator.unit_display or indicator.unit,
@@ -433,16 +528,14 @@ def _render_trends_tab(
 
 
 def _render_coverage_tab(
-    indicator, long_df: pd.DataFrame, citation
+    indicator, long_df: pd.DataFrame, citation, t
 ) -> None:  # noqa: ANN001 - Indicator/Citation, avoids import cycle noise
     series_df = _load_indicator_series(indicator.key)
     if series_df.empty:
-        st.info("This view needs more historical data than we have loaded right now.")
+        st.info(t.t("info.need_history"))
         return
     if not indicator.temporal_start or not indicator.temporal_end:
-        st.info(
-            "This view needs a known date range for this indicator, which isn't set up yet."
-        )
+        st.info(t.t("info.need_date_range"))
         return
 
     names = (
@@ -455,16 +548,18 @@ def _render_coverage_tab(
 
     start, end = int(indicator.temporal_start), int(indicator.temporal_end)
     report = compute_coverage(series_df, start, end)
-    render_coverage_panel(series_df, report, [citation], start, end)
+    render_coverage_panel(series_df, report, [citation], start, end, t)
 
 
 def _render_gap_analysis_tab(
-    catalog, indicator, compare_indicator, long_df, compare_df, spec, citation
+    catalog, indicator, compare_indicator, long_df, compare_df, spec, citation, t
 ) -> None:  # noqa: ANN001 - avoids import cycle noise
     if spec.comparability == "blocked":
-        st.error("Cannot cross-plot: " + "; ".join(spec.blockers))
+        st.error(t.t("gap.cannot_crossplot", reasons=t.blockers(spec)))
         return
 
+    left_label = t.indicator(indicator)
+    right_label = t.indicator(compare_indicator)
     pop_indicator = catalog.indicators.get("unicef_population")
     left_dates_finding = check_mixed_dates(
         _load_indicator_point_payload(indicator.key), indicator.dcid
@@ -503,6 +598,8 @@ def _render_gap_analysis_tab(
         merged["difference"] = merged[compare_indicator.key] - merged[indicator.key]
 
     n_cross_year = int((~merged["same_year"]).sum())
+    # Intentionally English in every locale: a nuanced statistical caveat
+    # where a poor translation misleads. Needs a human translator.
     if left_dates_finding or right_dates_finding or n_cross_year:
         st.warning(
             f"⚠️ Comparing across different years: {n_cross_year} of "
@@ -514,7 +611,7 @@ def _render_gap_analysis_tab(
 
     _render_disagreement_callout(indicator, compare_indicator, merged)
 
-    with st.expander("See the year-by-year comparison table"):
+    with st.expander(t.t("gap.table_expander")):
         table_cols = [
             "place_name",
             f"{indicator.key}_date",
@@ -527,13 +624,19 @@ def _render_gap_analysis_tab(
         st.dataframe(
             merged[table_cols].sort_values("place_name"),
             use_container_width=True,
+            # Keys are dataframe column ids; only the values are display
+            # text, so translating these cannot break the lookup.
             column_config={
-                "place_name": "Country",
-                f"{indicator.key}_date": f"{indicator.label} year",
-                indicator.key: indicator.label,
-                f"{compare_indicator.key}_date": f"{compare_indicator.label} year",
-                compare_indicator.key: compare_indicator.label,
-                "difference": "Difference",
+                "place_name": t.t("gap.col_country"),
+                f"{indicator.key}_date": t.t(
+                    "gap.col_indicator_year", indicator=left_label
+                ),
+                indicator.key: left_label,
+                f"{compare_indicator.key}_date": t.t(
+                    "gap.col_indicator_year", indicator=right_label
+                ),
+                compare_indicator.key: right_label,
+                "difference": t.t("gap.col_difference"),
             },
         )
 
@@ -548,23 +651,37 @@ def _render_gap_analysis_tab(
             )
             size_col = "population"
 
+    # Region is a filter, not a colour channel. Seven continents cannot be
+    # told apart reliably on a scatter -- see views/palette.py -- so the
+    # dimension moves into a control above the chart, per the one-row-of-
+    # filters convention.
     continent_map = _load_continent_map()
-    color_col = None
     if continent_map:
         merged["continent"] = merged["place_dcid"].map(continent_map)
-        color_col = "continent"
+        regions = sorted({r for r in merged["continent"].dropna().unique()})
+        if regions:
+            choice = st.selectbox(
+                t.t("gap.region_filter"),
+                [None] + regions,
+                format_func=lambda r: t.t("gap.region_all") if r is None else r.title(),
+            )
+            if choice is not None:
+                merged = merged[merged["continent"] == choice]
+            if merged.empty:
+                st.info(t.t("gap.empty"))
+                return
 
-    compare_citation = citation_for_indicator(compare_indicator)
+    compare_citation = citation_for_indicator(compare_indicator, label=right_label)
     render_bivariate(
         merged,
         x_col=indicator.key,
         y_col=compare_indicator.key,
-        x_label=indicator.label,
-        y_label=compare_indicator.label,
+        x_label=left_label,
+        y_label=right_label,
         spec=spec,
         citations=[citation, compare_citation],
+        t=t,
         size_col=size_col,
-        color_col=color_col,
     )
 
 
@@ -579,6 +696,9 @@ def _render_disagreement_callout(
     This is the demo's centerpiece moment for "triage across disagreeing
     sources": named countries and numbers, written into the view rather than
     left for a presenter to remember to say out loud.
+
+    Intentionally English in every locale, like the other statistical
+    caveats: this is a claim about survey methodology, not UI chrome.
     """
     if "difference" not in merged.columns:
         return
@@ -619,7 +739,9 @@ class PriorityBundle:
     notes: tuple[str, ...] = field(default_factory=tuple)
 
 
-def _compute_priority_scores(catalog, indicator) -> PriorityBundle | None:
+def _compute_priority_scores(
+    catalog, indicator, t
+) -> PriorityBundle | None:  # noqa: ANN001 - Catalog/Indicator, avoids import cycle
     """All of the old _render_priority_section, minus the st.* rendering.
 
     Split out so this computation can run above st.tabs() and be shared
@@ -632,6 +754,10 @@ def _compute_priority_scores(catalog, indicator) -> PriorityBundle | None:
     Returns None when the indicator has no denominator, no shared years
     between access/population series, or no series data at all -- the
     common case for 8 of 9 catalog indicators today.
+
+    Takes `t` because the sidebar sliders it owns are labelled, and because
+    the notes it returns are user-facing strings: translating them here
+    keeps the renderer a pure pass-through.
     """
     denom = catalog.indicators[indicator.denominator]
 
@@ -668,18 +794,16 @@ def _compute_priority_scores(catalog, indicator) -> PriorityBundle | None:
     merged["slope"] = merged["slope"].fillna(0.0)
     if saturated_places:
         notes.append(
-            f"{len(saturated_places)} places already at/near the saturation "
-            f"ceiling ({indicator.saturation_ceiling}) are excluded from the "
-            "stagnation component and treated as zero-slope."
+            t.t(
+                "priority.saturation_excluded",
+                count=len(saturated_places),
+                ceiling=indicator.saturation_ceiling,
+            )
         )
 
-    st.sidebar.markdown("**Priority score weights**")
-    w_gap = st.sidebar.slider(
-        "How much to prioritize: people affected", 0.0, 3.0, 1.0, 0.5
-    )
-    w_stag = st.sidebar.slider(
-        "How much to prioritize: not improving", 0.0, 3.0, 1.0, 0.5
-    )
+    st.sidebar.markdown(t.t("sidebar.weights_header"))
+    w_gap = st.sidebar.slider(t.t("sidebar.weight_people"), 0.0, 3.0, 1.0, 0.5)
+    w_stag = st.sidebar.slider(t.t("sidebar.weight_stagnation"), 0.0, 3.0, 1.0, 0.5)
 
     scored = priority_score(
         merged,
@@ -711,21 +835,23 @@ def _priority_lookup(priority: PriorityBundle | None) -> tuple[dict[str, int], i
     return ranks, len(ranks)
 
 
-def _render_priority_section(indicator, priority: PriorityBundle | None) -> None:
+def _render_priority_section(
+    indicator, priority: PriorityBundle | None, t
+) -> None:  # noqa: ANN001 - Indicator, avoids import cycle noise
     if priority is None:
-        st.info(
-            f"Priority scoring for {indicator.label} needs more historical "
-            "data than we have loaded right now."
-        )
+        st.info(t.t("priority.needs_history", indicator=t.indicator(indicator)))
         return
 
     for note in priority.notes:
         st.caption(note)
 
-    citation = citation_for_indicator(indicator, as_of=priority.year)
+    citation = citation_for_indicator(
+        indicator, as_of=priority.year, label=t.indicator(indicator)
+    )
     render_priority_table(
         priority.scored,
         [citation],
+        t,
         headline_total_unserved=priority.total_unserved,
     )
 

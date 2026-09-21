@@ -1,0 +1,216 @@
+# Chinese (Simplified). Key set must match en.yml exactly.
+# Indicator names follow UNSD's Chinese SDG terminology where it exists;
+# needs native-speaker review before this is shown to a UN audience.
+version: 1
+locale: zh
+name: 中文
+direction: ltr
+
+numbers:
+  decimal: "."
+  group: ","
+  million: "百万"
+  list_separator: "、"
+
+ui:
+  app.title: "联合国可持续发展目标跨机构数据面板"
+  app.caption: >-
+    一套可复用的方法，用于获取、验证并关联联合国各机构的指标数据——每新增一个指标都无需编写新代码。
+
+  sidebar.language: "语言"
+  sidebar.topic_filter: "按主题筛选列表（可选）"
+  picker.other_topic: "其他"
+  sidebar.indicator: "指标"
+  sidebar.compare: "对比指标"
+  sidebar.compare_none: "（不对比）"
+  sidebar.weights_header: "**优先级评分权重**"
+  sidebar.weight_people: "权重：受影响人口"
+  sidebar.weight_stagnation: "权重：进展停滞"
+
+  tab.map: "地图"
+  tab.trends: "趋势"
+  tab.gap: "差距分析"
+  tab.priority: "优先级"
+  tab.coverage: "数据覆盖"
+  tab.sources: "数据来源"
+  tab.insights: "洞察"
+
+  source.prefix: "来源：{citation}"
+  source.unit: "单位：{unit}"
+
+  rtl.notice: >-
+    文本从右向左显示。地图和图表不会镜像翻转，仍按从左到右阅读。
+
+  warn.no_indicators: "没有指标符合该主题筛选条件 —— 请尝试清除筛选。"
+  warn.no_observations: "未返回 {indicator} 的观测数据。"
+  info.need_history: "此视图所需的历史数据多于当前已加载的数据。"
+  info.need_two_indicators: "此视图需要该主题下至少两个指标，目前只有一个可用。"
+  info.need_date_range: "此视图需要该指标的已知时间范围，但尚未配置。"
+
+  map.coverage: "地图上 {total} 个地区中有 {matched} 个具有该指标的数据。"
+  map.no_data_legend: "⬜ 灰色 = 该国家无可用数据。"
+  map.no_data_swatch: "无数据"
+  map.this_indicator: "该指标"
+  map.hover_hint: "ℹ️ 将鼠标悬停在某个国家上会显示其 **{metric}**{unit} 的数值 —— 也就是地图配色所依据的同一个数字。"
+  map.excluded: >-
+    已排除 {count} 个有数据但地图上无几何图形的地区：{places}。下方地图不予显示。
+
+  trends.title: "历年趋势"
+  trends.empty: "所选地区没有时间序列数据。"
+  trends.saturated_legend: "{place}（已达上限）"
+  trends.fit_legend: "{place} 趋势（{slope}/年）"
+  trends.axis_year: "年份"
+  trends.axis_value: "数值"
+
+  coverage.title: "数据覆盖情况"
+  coverage.places_reporting: "报告数据的地区"
+  coverage.completeness: "完整度"
+  coverage.missing_cells: "{count} 个缺失单元格"
+  coverage.axis_year: "年份"
+  coverage.axis_place: "地区"
+  coverage.axis_observed: "已观测"
+  coverage.stalest_header: "**数据最不及时的国家**（最近报告年份最早）"
+  coverage.col_latest_year: "最近报告年份"
+  coverage.download: "下载缺失的（地区，年份）单元格 CSV"
+
+  compare.title: "这两个指标可以比较吗？"
+  compare.pair: "**{left}**（{left_source}）× **{right}**（{right_source}）"
+  compare.external_source: "外部来源"
+  compare.outside_un: "🌐 其中一个来源不属于联合国统计体系。"
+  compare.countries_both: "两个来源共同覆盖的国家"
+  compare.countries_both_value: "{total} 个中的 {shared} 个"
+  compare.countries_only_one: "{count} 个国家仅出现在一个来源中"
+  compare.years_both: "两个来源共同报告的年份"
+  compare.none_marker: "—"
+  compare.verdict_direct: "✅ 可以直接比较——测量方式相同，量纲可比。"
+  compare.verdict_axes_only: >-
+    ⚠️ 可以并列展示，但不能相减或相除——两者的计量单位不同。
+  compare.verdict_blocked: "🚫 无法比较——没有共同的国家或年份。"
+  compare.dimension_shared: "- 两个来源的拆分方式相同：**{dimension}**"
+  compare.dimension_unmatched: >-
+    - **{dimension}**：两个来源的分类方式不同，无法对齐
+
+  gap.title: "差距分析：资源投入在哪里能惠及最多人口？"
+  gap.empty: "没有可用于绘图的重叠观测值。"
+  gap.cannot_plot: "无法绘制 {x} 与 {y} 的关系图：{reasons}"
+  gap.cannot_crossplot: "无法交叉绘图：{reasons}"
+  gap.headroom_annotation: "低 / 低 — 提升空间最大"
+  gap.axes_only_note: >-
+    这两个指标的单位不同，仅在各自的坐标轴上展示。两者之间的差值与比值已停用。
+  gap.table_expander: "查看逐年对比表"
+  gap.col_country: "国家"
+  gap.col_indicator_year: "{indicator} 年份"
+  gap.col_difference: "差值"
+
+  gap.region_filter: "区域"
+  gap.region_all: "所有区域"
+
+  blocker.no_places: "这两个来源没有任何共同的国家。"
+  blocker.no_years: "这两个来源没有任何共同的报告年份。"
+
+  insights.convergence_title: "**落后国家正在追赶吗？**（{indicator}，{start}–{end}）"
+  insights.convergence_empty: "两个年份都有数据的地区不足，无法检验追赶效应。"
+  insights.catch_up_yes: "是，存在一定追赶"
+  insights.catch_up_no: "未检测到追赶"
+  insights.catch_up_signal: "追赶信号"
+  insights.stats_expander: "查看背后的统计量"
+  insights.beta: "β（负值 = 收敛）"
+  insights.ci: "95% 置信区间"
+  insights.r_squared: "R²"
+  insights.groups_title: "**相似国家分组**"
+  insights.groups_empty: "所选指标下拥有完整数据的地区不足。"
+  insights.k_expander: "我们如何确定分组数量"
+  insights.k_caption: "依据轮廓系数选出 {k} 组（{scores}）。"
+  insights.group_label: "第 {n} 组"
+  insights.group_axis: "分组"
+  insights.countries_axis: "国家数"
+
+  priority.title: "优先级：该指标在哪里能惠及最多人口？"
+  priority.headline: "尚未覆盖的总人口"
+  priority.explainer: >-
+    优先级得分是下列各列的加权平均值——点击任一列排序，即可看出排名的主要驱动因素。
+  priority.col_country: "国家"
+  priority.col_priority: "优先级"
+  priority.col_people: "受影响人口"
+  priority.col_stagnation: "进展停滞"
+  priority.needs_history: "{indicator} 的优先级评分所需的历史数据多于当前已加载的数据。"
+  priority.saturation_excluded: >-
+    有 {count} 个地区已达到或接近饱和上限（{ceiling}），已从停滞项中剔除并按零斜率处理。
+
+  lineage.title: "数据来源与溯源"
+  lineage.show: "查看这些数字的来源"
+  lineage.summary: >-
+    {places} 个国家有数据 · 地图上 {geometries} 个国家 ·
+    {indicators} 个指标 · {sources} 个发布方。
+  lineage.checks_summary_clean: "{total} 项交叉核对全部一致。"
+  lineage.checks_summary_failing: "{total} 项交叉核对中有 {failed} 项不一致——展开查看详情。"
+  lineage.sources_heading: "来源"
+  lineage.col_source: "来源"
+  lineage.col_provides: "提供"
+  lineage.col_provenance: "来源标识"
+  lineage.col_url: "发布于"
+  lineage.col_period: "观测周期"
+  lineage.col_access: "获取自"
+  lineage.no_licence: >-
+    此接口不提供许可协议字段，因此不显示许可信息。再次分发前请查阅发布方自身的门户网站。
+  lineage.selected_heading: "选取了哪些记录"
+  lineage.col_parameter: "参数"
+  lineage.col_value: "取值"
+  lineage.fields_heading: "每个数字的出处"
+  lineage.col_shown: "显示为"
+  lineage.col_field: "来源中的变量"
+  lineage.applied_heading: "对数据做了什么"
+  lineage.checks_heading: "交叉核对"
+  lineage.checks_note: >-
+    对具有两条独立推导路径的数字进行比对。这些结果由当前获取的响应计算得出，而非在此断言。
+  lineage.agrees: "一致"
+  lineage.differs: "不一致"
+  lineage.of_total: "{total} 项中的 {agree} 项"
+  lineage.cite_heading: "引用方式"
+  lineage.citation: "{citations}\n获取时间 {generated}。目录充实时间 {catalog}。"
+  lineage.untranslated: >-
+    变量标识、来源标识和国家名称均按原文显示。
+  transform.fetch: "通过地域包含层级，一次请求获取全部国家的数据。"
+  transform.latest: "每个国家仅保留最近一次观测值。"
+  transform.long: "将响应重整为每个国家、每个日期一行。"
+  transform.names: "将地点标识解析为国家名称。"
+  transform.join: "按地点标识与地图几何图形关联，无需对照表。"
+  transform.saturation: "拟合趋势时剔除已达饱和上限的国家。"
+  transform.denominator: "乘以人口数，将比率换算为人数。"
+  transform.merge: "按国家和参考年份匹配两个数据来源。"
+  lineage.check.map_join: "观测值与地图几何图形"
+  lineage.detail.map_join: "每个有数据的国家都应有可供绘制的图形。"
+  lineage.check.catalog_coverage: "目录记录的覆盖范围与实时响应"
+  lineage.detail.catalog_coverage: "`make enrich` 当时记录的结果，与接口当前返回的结果对比。"
+  lineage.check.unit_drift: "目录单位与实际返回单位"
+  lineage.detail.unit_drift: "充实目录时记录的单位应与返回的每个切面一致。"
+  lineage.check.single_facet: "每张地图仅一个发布方"
+  lineage.detail.single_facet: "出现多个切面意味着地图混合了不同发布方的数据。"
+  lineage.check.same_year: "参考年份是否一致"
+  lineage.detail.same_year: "报告众数年份的国家数，与全部报告国家数对比。"
+  lineage.check.cross_source: "两个来源之间的一致性"
+  lineage.detail.cross_source: "两个来源互不派生，因此差距是真实的分歧。"
+
+indicators:
+  sdg_elec_access: "电力可及性"
+  sdg_renew_capacity: "可再生能源装机容量"
+  sdg_renew_share: "可再生能源占能源消费的比重"
+  sdg_energy_intensity: "一次能源强度"
+  who_clean_cooking: "清洁烹饪燃料使用率"
+  sdg_safe_water: "安全管理的饮用水"
+  sdg_forest_area: "森林面积（占土地面积百分比）"
+  unicef_population: "总人口"
+  worldbank_elec_access: "电力可及性（世界银行）"
+
+  wb_elec_access_rural: "农村电力普及率"
+  wb_elec_access_urban: "城市电力普及率"
+  wb_transmission_losses: "输配电损耗"
+  wb_firm_outages: "遭遇停电的企业比例"
+  wb_elec_consumption_pc: "人均用电量"
+  wb_renew_output: "可再生能源发电占比"
+topics:
+  energy_access: "能源可及性与可再生能源（可持续发展目标7）"
+  water_sanitation: "水与环境卫生（可持续发展目标6）"
+  land_forests: "陆地与森林（可持续发展目标15）"
+  energy_supply: "能源生产与结构（SDG7.2）"
+  energy_delivery: "能源输送、损耗与可靠性"

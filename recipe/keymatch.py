@@ -69,6 +69,11 @@ class JoinSpec:
     comparability: str  # "direct" | "axes_only" | "blocked"
     blockers: tuple[str, ...] = field(default_factory=tuple)
     warnings: tuple[str, ...] = field(default_factory=tuple)
+    # Stable identifiers for the same blockers, parallel to `blockers`.
+    # `blockers` holds English sentence fragments that get glued together at
+    # the call site, which no other language can reproduce grammatically;
+    # these ids let a view look up a whole translated sentence instead.
+    blocker_ids: tuple[str, ...] = field(default_factory=tuple)
 
 
 def _resolve_dimension_value(
@@ -107,6 +112,7 @@ def compute_join_spec(
     """
     warnings: list[str] = []
     blockers: list[str] = []
+    blocker_ids: list[str] = []
 
     # 1. Dimension intersection, resolved through the alias map.
     shared_dim_names = set(left.dimensions) & set(right.dimensions)
@@ -142,12 +148,14 @@ def compute_join_spec(
         )
     if n_shared_places == 0:
         blockers.append("no places in common")
+        blocker_ids.append("no_places")
 
     # 3. Date overlap.
     shared_years = _shared_years(left, right)
     if shared_years is not None:
         if shared_years == 0:
             blockers.append("no years in common")
+            blocker_ids.append("no_years")
         elif shared_years < _MIN_SHARED_YEARS:
             warnings.append(
                 f"These sources only overlap in {shared_years} year(s) — most "
@@ -200,4 +208,5 @@ def compute_join_spec(
         comparability=comparability,
         blockers=tuple(blockers),
         warnings=tuple(warnings),
+        blocker_ids=tuple(blocker_ids),
     )

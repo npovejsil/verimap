@@ -22,6 +22,8 @@ import streamlit as st
 from analytics.archetypes import ArchetypeResult, GroupRanking
 from analytics.convergence import ConvergenceMovers, ConvergenceResult
 from recipe.attribution import Citation, require_citations
+from recipe.i18n import Translator
+from views.palette import active_tokens, apply_chart_chrome
 
 # Below this share of countries having both years, the "fastest/slowest"
 # lists get an explicit coverage caveat -- naming winners and losers out of
@@ -50,6 +52,7 @@ def render_convergence(
     base_year: str,
     end_year: str,
     citations: list[Citation],
+    t: Translator,
     movers: ConvergenceMovers | None = None,
     place_names: dict[str, str] | None = None,
     priority_ranks: dict[str, int] | None = None,
@@ -59,24 +62,31 @@ def render_convergence(
     require_citations(citations)
     place_names = place_names or {}
     st.markdown(
-        f"**Are lagging countries catching up?** ({indicator_label}, "
-        f"{base_year}–{end_year})"
+        t.t(
+            "insights.convergence_title",
+            indicator=indicator_label,
+            start=base_year,
+            end=end_year,
+        )
     )
 
     if result is None:
-        st.info("Not enough places with data in both years to check for catch-up.")
+        st.info(t.t("insights.convergence_empty"))
         return
 
-    catch_up = "Yes, some catch-up" if result.beta < 0 else "No catch-up detected"
-    st.metric("Catch-up signal", f"{catch_up} ({result.beta:+.2f})")
+    catch_up = t.t(
+        "insights.catch_up_yes" if result.beta < 0 else "insights.catch_up_no"
+    )
+    st.metric(t.t("insights.catch_up_signal"), f"{catch_up} ({t.signed(result.beta)})")
 
-    with st.expander("Show the statistics behind this"):
+    with st.expander(t.t("insights.stats_expander")):
         cols = st.columns(3)
-        cols[0].metric("β (negative = convergence)", f"{result.beta:.3f}")
+        cols[0].metric(t.t("insights.beta"), t.num(result.beta, 3))
         cols[1].metric(
-            "95% CI", f"[{result.beta_ci_low:.3f}, {result.beta_ci_high:.3f}]"
+            t.t("insights.ci"),
+            f"[{t.num(result.beta_ci_low, 3)}, {t.num(result.beta_ci_high, 3)}]",
         )
-        cols[2].metric("R²", f"{result.r_squared:.2f}")
+        cols[2].metric(t.t("insights.r_squared"), t.num(result.r_squared, 2))
 
     if total_places and result.n_places / total_places < _LOW_COVERAGE_THRESHOLD:
         st.caption(
@@ -115,6 +125,10 @@ def render_convergence(
             "definition, so they're excluded from both lists."
         )
 
+    # Intentionally English in every locale: a nuanced statistical caveat
+    # where a poor translation misleads rather than merely reads awkwardly.
+    # Needs a human translator, not a generated string. The named-mover
+    # lists above are held to the same rule for the same reason.
     st.warning(
         f"**Be careful with this**: {result.ceiling_share:.0%} of countries were "
         "already near the maximum possible score at the start or end of this "
@@ -124,7 +138,7 @@ def render_convergence(
     )
 
     for c in citations:
-        st.caption(f"Source: {c.render()}")
+        st.caption(t.t("source.prefix", citation=c.render(t)))
 
 
 def _render_mover_list(
@@ -151,6 +165,7 @@ def render_archetypes(
     result: ArchetypeResult | None,
     feature_labels: dict[str, str],
     citations: list[Citation],
+    t: Translator,
     group_ranking: GroupRanking | None = None,
     place_names: dict[str, str] | None = None,
     priority_ranks: dict[str, int] | None = None,
@@ -158,29 +173,54 @@ def render_archetypes(
 ) -> None:
     require_citations(citations)
     place_names = place_names or {}
-    st.markdown("**Groups of similar countries**")
+    st.markdown(t.t("insights.groups_title"))
 
     if result is None:
-        st.info("Not enough places with complete data across the selected indicators.")
+        st.info(t.t("insights.groups_empty"))
         return
 
-    with st.expander("How we chose the number of groups"):
-        st.caption(
-            f"{result.k_used} groups chosen by silhouette score "
-            f"({', '.join(f'k={k}: {v:.2f}' for k, v in sorted(result.silhouette_by_k.items()))})."
+    with st.expander(t.t("insights.k_expander")):
+        scores = t.join(
+            [f"k={k}: {t.num(v, 2)}" for k, v in sorted(result.silhouette_by_k.items())]
         )
+        st.caption(t.t("insights.k_caption", k=result.k_used, scores=scores))
 
-    display_centers = result.cluster_centers.rename(columns=feature_labels)
-    display_centers.index = [f"Group {i + 1}" for i in display_centers.index]
-    display_centers.index.name = "Group"
-    st.dataframe(display_centers.round(1), use_container_width=True)
+    # One helper for both the table index and the bar chart's x axis: they
+    # must produce byte-identical labels or the two stop lining up visually.
+    def group_label(i: int) -> str:
+        return t.t("insights.group_label", n=i + 1)
+
+    # Column ids stay the indicator keys and are translated via column_config
+    # instead of rename(): two indicators whose translations collide would
+    # otherwise produce duplicate columns.
+    display_centers = result.cluster_centers.copy()
+    display_centers.index = [group_label(i) for i in display_centers.index]
+    display_centers.index.name = t.t("insights.group_axis")
+    st.dataframe(
+        display_centers.round(1),
+        use_container_width=True,
+        column_config={k: v for k, v in feature_labels.items()},
+    )
 
     counts = result.labels.value_counts().sort_index()
+    tok = active_tokens()
     fig = px.bar(
-        x=[f"Group {i + 1}" for i in counts.index],
+        x=[group_label(i) for i in counts.index],
         y=counts.values,
-        labels={"x": "Group", "y": "Countries"},
+        labels={
+            "x": t.t("insights.group_axis"),
+            "y": t.t("insights.countries_axis"),
+        },
     )
+    # One series, so no legend -- the heading already names it. Rounded
+    # data-ends, anchored to the baseline.
+    fig.update_traces(
+        marker_color=tok.series,
+        marker_line_width=0,
+        hovertemplate="%{y}<extra>%{x}</extra>",
+    )
+    fig.update_layout(bargap=0.45, yaxis_title=None)
+    apply_chart_chrome(fig, tok, legend=False)
     st.plotly_chart(fig, use_container_width=True)
 
     if group_ranking is not None:
@@ -199,6 +239,7 @@ def render_archetypes(
         ]
         st.caption(f"Countries in this group: {', '.join(names_with_rank)}")
 
+    # Intentionally English in every locale -- see render_convergence above.
     st.warning(
         "**These groups are a starting point, not an answer.** They're based "
         "only on the numbers we gave it — the computer doesn't know anything "
@@ -208,4 +249,4 @@ def render_archetypes(
     )
 
     for c in citations:
-        st.caption(f"Source: {c.render()}")
+        st.caption(t.t("source.prefix", citation=c.render(t)))

@@ -1,0 +1,240 @@
+# Arabic. Key set must match en.yml exactly (tests/test_i18n.py enforces).
+# Indicator names follow UNSD's Arabic SDG terminology where it exists;
+# needs native-speaker review before this is shown to a UN audience.
+#
+# direction: rtl triggers a stylesheet in app.py that flips text and layout.
+# It does NOT flip the pydeck map, plotly axes or chart legends -- those stay
+# left-to-right, and ui.rtl.notice says so on screen rather than pretending
+# the support is complete.
+#
+# Digits stay Western (0-9) rather than Eastern Arabic (٠-٩): that is the
+# convention in statistical publications and matches the underlying UN data.
+version: 1
+locale: ar
+name: العربية
+direction: rtl
+
+numbers:
+  decimal: "."
+  group: ","
+  million: "مليون"
+  list_separator: "، "
+
+ui:
+  app.title: "لوحة مؤشرات أهداف التنمية المستدامة المشتركة بين وكالات الأمم المتحدة"
+  app.caption: >-
+    طريقة قابلة لإعادة الاستخدام لجلب مؤشرات وكالات الأمم المتحدة والتحقق
+    منها وربطها — دون كتابة شفرة جديدة لكل مؤشر.
+
+  sidebar.language: "اللغة"
+  sidebar.topic_filter: "تضييق القائمة حسب الموضوع (اختياري)"
+  picker.other_topic: "أخرى"
+  sidebar.indicator: "المؤشر"
+  sidebar.compare: "المقارنة مع"
+  sidebar.compare_none: "(بدون)"
+  sidebar.weights_header: "**أوزان درجة الأولوية**"
+  sidebar.weight_people: "مدى الأولوية: السكان المتأثرون"
+  sidebar.weight_stagnation: "مدى الأولوية: عدم إحراز تقدم"
+
+  tab.map: "الخريطة"
+  tab.trends: "الاتجاهات"
+  tab.gap: "تحليل الفجوات"
+  tab.priority: "الأولوية"
+  tab.coverage: "تغطية البيانات"
+  tab.sources: "المصادر"
+  tab.insights: "الاستنتاجات"
+
+  source.prefix: "المصدر: {citation}"
+  source.unit: "الوحدة: {unit}"
+
+  rtl.notice: >-
+    يُعرض النص من اليمين إلى اليسار. أما الخريطة والرسوم البيانية فلا تُعكس،
+    وتبقى قراءتها من اليسار إلى اليمين.
+
+  warn.no_indicators: "لا يوجد مؤشر يطابق مرشّح الموضوع هذا — جرّب إزالته."
+  warn.no_observations: "لا توجد مشاهدات للمؤشر {indicator}."
+  info.need_history: "يحتاج هذا العرض إلى بيانات تاريخية أكثر مما هو محمَّل حاليًا."
+  info.need_two_indicators: >-
+    يحتاج هذا العرض إلى مؤشرين على الأقل لهذا الموضوع، ولا يتوفر سوى مؤشر
+    واحد الآن.
+  info.need_date_range: >-
+    يحتاج هذا العرض إلى نطاق زمني معروف لهذا المؤشر، وهو غير مضبوط بعد.
+
+  map.coverage: "{matched} من أصل {total} موقعًا على الخريطة لديها بيانات لهذا المؤشر."
+  map.no_data_legend: "⬜ الرمادي = لا تتوفر بيانات لهذا البلد."
+  map.no_data_swatch: "لا توجد بيانات"
+  map.this_indicator: "هذا المؤشر"
+  map.hover_hint: "ℹ️ تمرير المؤشر فوق بلد ما يعرض قيمته لـ **{metric}**{unit} — وهو الرقم نفسه الذي يستند إليه تدرّج اللون."
+  map.excluded: >-
+    استُبعد {count} موقعًا لديها بيانات دون شكل هندسي على الخريطة: {places}.
+    وهي غير معروضة على الخريطة أدناه.
+
+  trends.title: "الاتجاهات عبر الزمن"
+  trends.empty: "لا توجد سلاسل زمنية للمواقع المحددة."
+  trends.saturated_legend: "{place} (بلغ الحد الأقصى بالفعل)"
+  trends.fit_legend: "{place} الاتجاه ({slope}/سنة)"
+  trends.axis_year: "السنة"
+  trends.axis_value: "القيمة"
+
+  coverage.title: "تغطية البيانات"
+  coverage.places_reporting: "المواقع المبلِّغة"
+  coverage.completeness: "الاكتمال"
+  coverage.missing_cells: "{count} خلية مفقودة"
+  coverage.axis_year: "السنة"
+  coverage.axis_place: "الموقع"
+  coverage.axis_observed: "مُلاحَظ"
+  coverage.stalest_header: "**أقل البلدان تحديثًا** (أقدم سنة إبلاغ أخيرة)"
+  coverage.col_latest_year: "أحدث سنة مُبلَّغ عنها"
+  coverage.download: "تنزيل الخلايا المفقودة (الموقع، السنة) بصيغة CSV"
+
+  compare.title: "هل يمكن مقارنة هذين المؤشرين؟"
+  compare.pair: "**{left}** ({left_source}) × **{right}** ({right_source})"
+  compare.external_source: "مصدر خارجي"
+  compare.outside_un: "🌐 أحد هذين المصدرين خارج المنظومة الإحصائية للأمم المتحدة."
+  compare.countries_both: "البلدان المشمولة في المصدرين"
+  compare.countries_both_value: "{shared} من {total}"
+  compare.countries_only_one: "{count} بلدًا في مصدر واحد فقط"
+  compare.years_both: "السنوات التي يبلّغ عنها المصدران"
+  compare.none_marker: "—"
+  compare.verdict_direct: "✅ يمكن مقارنتهما مباشرة — القياس نفسه ومقياس قابل للمقارنة."
+  compare.verdict_axes_only: >-
+    ⚠️ يمكن عرضهما جنبًا إلى جنب، لكن لا يمكن طرحهما أو قسمتهما — فهما
+    مقيسان بوحدات مختلفة.
+  compare.verdict_blocked: "🚫 لا يمكن مقارنتهما — لا توجد بلدان أو سنوات مشتركة."
+  compare.dimension_shared: "- يصنّف المصدران هذا بالطريقة نفسها: **{dimension}**"
+  compare.dimension_unmatched: >-
+    - **{dimension}**: يصنّف المصدران هذا بطريقتين مختلفتين ولم نتمكن من
+    مطابقتهما
+
+  gap.title: "تحليل الفجوات: أين يصل المورد إلى أكبر عدد من الناس؟"
+  gap.empty: "لا توجد مشاهدات متداخلة لرسمها."
+  gap.cannot_plot: "تعذّر رسم {x} مقابل {y}: {reasons}"
+  gap.cannot_crossplot: "تعذّر الرسم المتقاطع: {reasons}"
+  gap.headroom_annotation: "منخفض / منخفض — أكبر هامش للتحسين"
+  gap.axes_only_note: >-
+    تختلف وحدات هذين المؤشرين: يُرسمان على محورين منفصلين فقط، والفروق
+    والنسب بينهما معطّلة.
+  gap.table_expander: "عرض جدول المقارنة سنة بسنة"
+  gap.col_country: "البلد"
+  gap.col_indicator_year: "سنة {indicator}"
+  gap.col_difference: "الفرق"
+
+  gap.region_filter: "المنطقة"
+  gap.region_all: "كل المناطق"
+
+  blocker.no_places: "لا يوجد أي بلد مشترك بين هذين المصدرين."
+  blocker.no_years: "لا توجد أي سنة إبلاغ مشتركة بين هذين المصدرين."
+
+  insights.convergence_title: "**هل تلحق البلدان المتأخرة بالركب؟** ({indicator}، {start}–{end})"
+  insights.convergence_empty: >-
+    لا توجد مواقع كافية لديها بيانات في كلتا السنتين للتحقق من اللحاق بالركب.
+  insights.catch_up_yes: "نعم، هناك بعض اللحاق بالركب"
+  insights.catch_up_no: "لم يُرصد لحاق بالركب"
+  insights.catch_up_signal: "مؤشر اللحاق بالركب"
+  insights.stats_expander: "عرض الإحصاءات وراء ذلك"
+  insights.beta: "β (السالب = تقارب)"
+  insights.ci: "فاصل ثقة 95%"
+  insights.r_squared: "R²"
+  insights.groups_title: "**مجموعات البلدان المتشابهة**"
+  insights.groups_empty: "لا توجد مواقع كافية لديها بيانات كاملة للمؤشرات المحددة."
+  insights.k_expander: "كيف اخترنا عدد المجموعات"
+  insights.k_caption: "اختيرت {k} مجموعات بحسب معامل الظل ({scores})."
+  insights.group_label: "المجموعة {n}"
+  insights.group_axis: "المجموعة"
+  insights.countries_axis: "البلدان"
+
+  priority.title: "الأولوية: أين يصل هذا المؤشر إلى أكبر عدد من الناس؟"
+  priority.headline: "إجمالي السكان الذين لم يُشمَلوا بعد"
+  priority.explainer: >-
+    درجة الأولوية هي متوسط مرجَّح للأعمدة أدناه — رتِّب حسب أي عمود لترى ما
+    الذي يحرّك الترتيب.
+  priority.col_country: "البلد"
+  priority.col_priority: "الأولوية"
+  priority.col_people: "السكان المتأثرون"
+  priority.col_stagnation: "دون تحسّن"
+  priority.needs_history: >-
+    يحتاج حساب الأولوية للمؤشر {indicator} إلى بيانات تاريخية أكثر مما هو
+    محمَّل حاليًا.
+  priority.saturation_excluded: >-
+    {count} موقعًا بلغت سقف التشبّع أو اقتربت منه ({ceiling})، وقد استُبعدت من
+    مكوّن الركود وعوملت بميل صفري.
+
+  lineage.title: "المصادر وسلسلة المنشأ"
+  lineage.show: "إظهار مصدر هذه الأرقام"
+  lineage.summary: >-
+    {places} بلدًا لديها بيانات · {geometries} بلدًا على الخريطة ·
+    {indicators} مؤشرات · {sources} جهات ناشرة.
+  lineage.checks_summary_clean: "جميع عمليات التحقق المتقاطع الـ{total} متطابقة."
+  lineage.checks_summary_failing: "{failed} من أصل {total} من عمليات التحقق المتقاطع مختلفة — افتح للاطلاع على التفاصيل."
+  lineage.sources_heading: "المصادر"
+  lineage.col_source: "المصدر"
+  lineage.col_provides: "يوفّر"
+  lineage.col_provenance: "معرّف المنشأ"
+  lineage.col_url: "منشور على"
+  lineage.col_period: "فترة الرصد"
+  lineage.col_access: "تم الحصول عليه عبر"
+  lineage.no_licence: >-
+    لا تنشر هذه الواجهة أي حقل للترخيص، لذا لا يُعرض أي ترخيص. راجع بوابة
+    الجهة الناشرة نفسها قبل إعادة النشر.
+  lineage.selected_heading: "ما السجلات التي جرى اختيارها"
+  lineage.col_parameter: "المعامل"
+  lineage.col_value: "القيمة"
+  lineage.fields_heading: "من أين يأتي كل رقم"
+  lineage.col_shown: "يُعرض بوصفه"
+  lineage.col_field: "المتغيّر في المصدر"
+  lineage.applied_heading: "ما الذي أُجري عليها"
+  lineage.checks_heading: "عمليات التحقق المتقاطع"
+  lineage.checks_note: >-
+    أرقام لها طريقتان مستقلتان للاشتقاق، جرت مقارنتهما. وهي محسوبة من
+    الاستجابة المتاحة، لا مُدّعاة هنا.
+  lineage.agrees: "متطابقة"
+  lineage.differs: "مختلفة"
+  lineage.of_total: "{agree} من {total}"
+  lineage.cite_heading: "كيفية الاقتباس"
+  lineage.citation: "{citations}\nتم الحصول عليها في {generated}. أُثري الفهرس في {catalog}."
+  lineage.untranslated: >-
+    تُعرض معرّفات المتغيّرات والمنشأ وأسماء البلدان بصيغتها الأصلية.
+  transform.fetch: "جُلبت جميع البلدان في طلب واحد عبر التسلسل الهرمي للاحتواء."
+  transform.latest: "احتُفظ بأحدث رصد لكل بلد."
+  transform.long: "أُعيدت هيكلة الاستجابة إلى صف واحد لكل بلد وتاريخ."
+  transform.names: "حُوّلت معرّفات المواقع إلى أسماء بلدان."
+  transform.join: "رُبطت بأشكال الخريطة عبر معرّف الموقع، دون جدول مطابقة."
+  transform.saturation: "استُبعدت البلدان عند سقف التشبّع من ملاءمة الاتجاه."
+  transform.denominator: "ضُربت في عدد السكان لتحويل المعدّل إلى أشخاص."
+  transform.merge: "طوبق المصدران حسب البلد والسنة المرجعية."
+  lineage.check.map_join: "الرصدات مقابل أشكال الخريطة"
+  lineage.detail.map_join: "ينبغي أن يكون لكل بلد لديه بيانات شكل يُرسم عليه."
+  lineage.check.catalog_coverage: "تغطية الفهرس مقابل الاستجابة الحيّة"
+  lineage.detail.catalog_coverage: "ما سجّله `make enrich` مقابل ما تعيده الواجهة الآن."
+  lineage.check.unit_drift: "وحدة الفهرس مقابل الوحدة المقدَّمة"
+  lineage.detail.unit_drift: "ينبغي أن تطابق الوحدة المسجّلة عند الإثراء كل واجهة بيانات مقدَّمة."
+  lineage.check.single_facet: "ناشر واحد لكل خريطة"
+  lineage.detail.single_facet: "وجود أكثر من واجهة بيانات يعني أن الخريطة تمزج بين ناشرين."
+  lineage.check.same_year: "السنة المرجعية نفسها"
+  lineage.detail.same_year: "البلدان التي تبلّغ عن السنة المنوالية مقابل جميع البلدان المبلِّغة."
+  lineage.check.cross_source: "التوافق بين المصدرين"
+  lineage.detail.cross_source: "لا يُشتق أي من المصدرين من الآخر، لذا فالفجوة خلاف حقيقي."
+
+indicators:
+  sdg_elec_access: "الحصول على الكهرباء"
+  sdg_renew_capacity: "القدرة المركّبة للطاقة المتجددة"
+  sdg_renew_share: "حصة الطاقة المتجددة من الاستهلاك"
+  sdg_energy_intensity: "كثافة استهلاك الطاقة الأولية"
+  who_clean_cooking: "الاعتماد على وقود الطهي النظيف"
+  sdg_safe_water: "مياه الشرب المدارة بأمان"
+  sdg_forest_area: "مساحة الغابات (% من الأرض)"
+  unicef_population: "إجمالي السكان"
+  worldbank_elec_access: "الحصول على الكهرباء (البنك الدولي)"
+
+  wb_elec_access_rural: "الحصول على الكهرباء في الريف"
+  wb_elec_access_urban: "الحصول على الكهرباء في الحضر"
+  wb_transmission_losses: "خسائر النقل والتوزيع"
+  wb_firm_outages: "الشركات التي تتعرّض لانقطاع التيار الكهربائي"
+  wb_elec_consumption_pc: "استهلاك الكهرباء للفرد"
+  wb_renew_output: "حصة الطاقة المتجددة من توليد الكهرباء"
+topics:
+  energy_access: "الحصول على الطاقة والطاقة المتجددة (الهدف 7)"
+  water_sanitation: "المياه والصرف الصحي (الهدف 6)"
+  land_forests: "الأراضي والغابات (الهدف 15)"
+  energy_supply: "توليد الطاقة ومزيجها (الهدف 7.2)"
+  energy_delivery: "إيصال الطاقة والخسائر والموثوقية"

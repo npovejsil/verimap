@@ -14,6 +14,8 @@ import streamlit as st
 
 from analytics.coverage import CoverageReport, coverage_heatmap_data
 from recipe.attribution import Citation, require_citations
+from recipe.i18n import Translator
+from views.palette import active_tokens, apply_chart_chrome
 
 
 def render_coverage_panel(
@@ -22,17 +24,18 @@ def render_coverage_panel(
     citations: list[Citation],
     expected_start: int,
     expected_end: int,
+    t: Translator,
 ) -> None:
     require_citations(citations)
 
-    st.subheader("Data coverage")
+    st.subheader(t.t("coverage.title"))
 
     cols = st.columns(2)
-    cols[0].metric("Places reporting", report.n_places_total)
+    cols[0].metric(t.t("coverage.places_reporting"), report.n_places_total)
     cols[1].metric(
-        "Completeness",
-        f"{1 - report.missing_share:.1%}",
-        f"{report.n_missing_cells} missing cells",
+        t.t("coverage.completeness"),
+        t.percent(1 - report.missing_share, 1),
+        t.t("coverage.missing_cells", count=report.n_missing_cells),
     )
 
     st.caption(
@@ -65,16 +68,30 @@ def render_coverage_panel(
         resolved = names.reindex(display_grid.index)
         display_grid.index = resolved.where(resolved.notna(), display_grid.index)
 
+    tok = active_tokens()
     fig = px.imshow(
         display_grid,
-        color_continuous_scale=[[0, "#e5e5e5"], [1, "#2166ac"]],
+        # Binary presence: the "missing" end sits at the surface colour so a
+        # hole reads as absence rather than as a low value.
+        color_continuous_scale=[
+            [0, f"rgb{tok.no_data[:3]}"],
+            [1, tok.categorical[0]],
+        ],
         aspect="auto",
-        labels=dict(x="Year", y="Place", color="Observed"),
+        labels=dict(
+            x=t.t("coverage.axis_year"),
+            y=t.t("coverage.axis_place"),
+            color=t.t("coverage.axis_observed"),
+        ),
     )
-    fig.update_layout(height=max(300, min(1200, 12 * len(display_grid))))
+    fig.update_layout(
+        height=max(300, min(1200, 12 * len(display_grid))),
+        coloraxis_showscale=False,
+    )
+    apply_chart_chrome(fig, tok, legend=False)
     st.plotly_chart(fig, use_container_width=True)
 
-    st.markdown("**Least up-to-date countries** (oldest latest-reported year)")
+    st.markdown(t.t("coverage.stalest_header"))
     stale_df = pd.DataFrame(
         report.stalest_places, columns=["place_dcid", "latest_year"]
     )
@@ -90,19 +107,19 @@ def render_coverage_panel(
         stale_df,
         use_container_width=True,
         column_config={
-            "place_dcid": "Country",
-            "latest_year": "Most recent year reported",
+            "place_dcid": t.t("gap.col_country"),
+            "latest_year": t.t("coverage.col_latest_year"),
         },
     )
 
     if missing_rows:
         csv = pd.DataFrame(missing_rows).to_csv(index=False)
         st.download_button(
-            "Download missing (place, year) cells as CSV",
+            t.t("coverage.download"),
             data=csv,
             file_name="coverage_gaps.csv",
             mime="text/csv",
         )
 
     for c in citations:
-        st.caption(f"Source: {c.render()}")
+        st.caption(t.t("source.prefix", citation=c.render(t)))
