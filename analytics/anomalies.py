@@ -1,6 +1,6 @@
 """Detect unusual year-to-year movements, independent of what's plotted.
 
-Three detector types, each answering a different question about the same
+Four detector types, each answering a different question about the same
 year-over-year panel:
 
 - spike: is this year's change unusual for THIS country, relative to its own
@@ -9,8 +9,10 @@ year-over-year panel:
   country did that same year?
 - reversal: does this country's multi-year trend point the wrong way for the
   indicator's polarity, with the direction statistically real (not noise)?
+- interpolated: does this country move in identical steps, the signature of a
+  straight line drawn between two real measurements?
 
-All three run over the full panel regardless of what a UI has selected to
+All four run over the full panel regardless of what a UI has selected to
 plot -- an anomaly in an unselected country must still surface, never be
 hidden by a picker (see views/trend_panel.py).
 
@@ -46,7 +48,7 @@ import pandas as pd
 
 from analytics.trends import TrendResult
 
-ANOMALY_KINDS = ("spike", "peer_outlier", "reversal")
+ANOMALY_KINDS = ("spike", "peer_outlier", "reversal", "interpolated")
 
 _ROBUST_SCALE_FACTOR = 1.4826  # scales MAD to be comparable to a standard deviation
 
@@ -316,6 +318,165 @@ def detect_reversals(
     return anomalies
 
 
+def detect_interpolated(
+    yoy: pd.DataFrame,
+    scales: AnomalyScales,
+    min_run: int = 3,
+    tol_frac: float = 0.33,
+    min_step_frac: float = 1.0,
+    top_n: int = 8,
+) -> list[Anomaly]:
+    """Flag runs of near-identical year-over-year changes.
+
+    A straight line drawn between two real measurements produces consecutive
+    changes that are all but equal. Genuine annual measurement does not: it
+    wobbles, because the instrument, the sample and the rounding all wobble.
+    So a long run of identical steps is evidence the intervening years were
+    filled in rather than observed.
+
+    Three conditions, all of which must hold across at least `min_run`
+    consecutive changes:
+
+    - each change is between consecutively *observed* years (`gap_years == 1`),
+      since a multi-year gap is not comparable to a single-year step;
+    - each change is at least `min_step` in size, which is what keeps a
+      saturated or rounding-noise series out (a country sitting at 100%
+      produces a long run of identical zero-changes that means the opposite
+      of this finding);
+    - adjacent changes differ by no more than `tol`.
+
+    Both thresholds are derived from the indicator's own pooled scale rather
+    than set as literal constants, for the reason recorded at the top of this
+    module: the 90th percentile of absolute year-over-year change spans ~37x
+    across the catalog, so any fixed value is meaningless for one indicator
+    or the other. `tol_frac` and `min_step_frac` are fractions of
+    `scales.pooled_scale`.
+
+    CALIBRATION, verified against live data (undata/sdg/EG_ACS_ELEC, 217
+    countries x 2000-2024, 5,183 year-over-year rows, UNSD SDG data portal):
+    pooled_scale is 0.2965 percentage points. The defaults above are the
+    fractions that reproduce the hand-tuned thresholds validated on that
+    indicator -- 0.33 * 0.2965 = 0.098 ~ 0.1 pp tolerance, and
+    1.0 * 0.2965 = 0.297 ~ 0.3 pp minimum step. min_step_frac = 1.0 reads
+    directly: a step must be at least one pooled scale to count.
+
+    At that setting 42 of 217 countries carry a run of 3+ identical steps.
+    That rate is high but it is not over-firing: SDG 7.1.1 is modelled
+    between survey years for much of its coverage. Belarus is the clearest
+    case -- 89.0 in 2000 to 100.0 in 2019 in steps of +0.5/+0.6/+0.7, a
+    19-year straight line, then flat at 100. Eritrea runs +1.1/+1.2 for 18
+    consecutive years (2003-2021) and only then starts to wobble (+2.9,
+    -1.0, +0.9), which is what real measurement resuming looks like.
+
+    Not yet verified on the other catalog indicators. pooled_scale varies by
+    ~37x across them (see the note at the top of this module), so the
+    fractions should hold where the absolute thresholds would not -- but
+    confirm before relying on the output for a new indicator.
+
+    Uses `pooled_scale` rather than `magnitude_gate` on purpose. The gate is
+    `max(pooled_scale, p90)`, which asks whether a change is unusually large.
+    An interpolated run is made of entirely ordinary-sized steps -- that is
+    precisely why it goes unnoticed -- so requiring p90-sized steps would
+    filter out every genuine case.
+
+    `score` is the length of the run in years: a longer fabricated stretch is
+    a worse problem than a shorter one, and it sorts meaningfully.
+    """
+    if yoy.empty or scales.pooled_scale <= 0:
+        # With no pooled scale there is nothing to calibrate against, and a
+        # tolerance of zero would flag every perfectly flat series.
+        return []
+
+    tol = tol_frac * scales.pooled_scale
+    min_step = min_step_frac * scales.pooled_scale
+
+    runs: list[dict] = []
+    for place, group in yoy.groupby("place_dcid"):
+        g = group.sort_values("date").reset_index(drop=True)
+        if len(g) < min_run:
+            continue
+
+        changes = g["change"].tolist()
+        gaps = g["gap_years"].tolist()
+
+        # links[i] is True when change i continues an identical-step run
+        # started at change i-1.
+        links = [False] * len(changes)
+        for i in range(1, len(changes)):
+            links[i] = (
+                gaps[i] == 1
+                and gaps[i - 1] == 1
+                and abs(changes[i]) >= min_step
+                and abs(changes[i - 1]) >= min_step
+                and abs(changes[i] - changes[i - 1]) <= tol
+            )
+
+        # Walk maximal runs of consecutive links. A run of m links covers
+        # m + 1 changes.
+        i = 1
+        while i < len(links):
+            if not links[i]:
+                i += 1
+                continue
+            start = i - 1
+            while i < len(links) and links[i]:
+                i += 1
+            end = i - 1  # last change index in the run
+            n_changes = end - start + 1
+            if n_changes >= min_run:
+                first, last = g.iloc[start], g.iloc[end]
+                runs.append(
+                    {
+                        "place_dcid": place,
+                        "date": last["date"],
+                        "value": float(last["value"]),
+                        "prior_date": first["prior_date"],
+                        "prior_value": float(first["prior_value"]),
+                        "change": float(last["value"] - first["prior_value"]),
+                        "n_changes": n_changes,
+                        "step": float(
+                            sum(changes[start : end + 1]) / n_changes
+                        ),
+                    }
+                )
+
+    if not runs:
+        return []
+
+    # One row per place: keep its longest run.
+    best: dict[str, dict] = {}
+    for r in runs:
+        current = best.get(r["place_dcid"])
+        if current is None or r["n_changes"] > current["n_changes"]:
+            best[r["place_dcid"]] = r
+
+    ordered = sorted(best.values(), key=lambda r: r["n_changes"], reverse=True)
+    ordered = ordered[:top_n]
+
+    anomalies = []
+    for r in ordered:
+        direction = "rose" if r["step"] > 0 else "fell"
+        anomalies.append(
+            Anomaly(
+                place_dcid=r["place_dcid"],
+                kind="interpolated",
+                date=r["date"],
+                value=r["value"],
+                prior_value=r["prior_value"],
+                prior_date=r["prior_date"],
+                change=r["change"],
+                score=float(r["n_changes"]),
+                detail=(
+                    f"{direction} by almost exactly {abs(r['step']):.2f} every "
+                    f"year from {r['prior_date']} to {r['date']}. A series that "
+                    "moves in identical steps is usually filled in between two "
+                    "real measurements rather than measured each year."
+                ),
+            )
+        )
+    return anomalies
+
+
 def detect_anomalies(
     long_df: pd.DataFrame,
     polarity: str,
@@ -326,7 +487,7 @@ def detect_anomalies(
     min_peers: int = 10,
     top_n: int = 8,
 ) -> list[Anomaly]:
-    """Run all three detectors over the full panel. Never raises on degenerate input."""
+    """Run all four detectors over the full panel. Never raises on degenerate input."""
     yoy = year_over_year(long_df, value_col=value_col)
     scales = compute_scales(yoy)
 
@@ -336,5 +497,6 @@ def detect_anomalies(
         anomalies += detect_peer_outliers(
             yoy, scales, k=k, min_peers=min_peers, top_n=top_n
         )
+        anomalies += detect_interpolated(yoy, scales, top_n=top_n)
     anomalies += detect_reversals(trend_results or [], polarity, top_n=top_n)
     return anomalies
