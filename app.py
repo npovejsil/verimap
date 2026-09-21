@@ -16,6 +16,7 @@ from analytics.archetypes import compute_archetypes, rank_groups_by_indicator
 from analytics.convergence import compute_convergence, rank_convergence_movers
 from analytics.coverage import compute_coverage
 from analytics.gap_scoring import priority_score, unserved_population
+from analytics.progress import compute_progress
 from analytics.trends import fit_trends_excluding_saturated
 from recipe.attribution import citation_for_indicator
 from recipe.cache import cached_data
@@ -41,6 +42,7 @@ from views.insights_panel import render_archetypes, render_convergence
 from views.lineage_panel import render_lineage_panel
 from views.picker import indicator_option_label
 from views.priority_table import render_priority_table
+from views.progress_panel import render_progress_panel
 from views.sources_panel import render_sources_panel
 from views.trend_panel import render_trend_panel
 
@@ -240,7 +242,7 @@ def main() -> None:
     # Tab *ids* are the dict keys and stay English; only what st.tabs displays
     # is translated. Keying the dict by the label would break every lookup
     # below the moment the language changes.
-    tab_keys = ["map", "trends"]
+    tab_keys = ["map", "trends", "progress"]
     if compare_indicator is not None:
         tab_keys.append("gap")
     has_priority_tab = (
@@ -274,6 +276,9 @@ def main() -> None:
 
     with tab_map["trends"]:
         _render_trends_tab(indicator, long_df, citation, t)
+
+    with tab_map["progress"]:
+        _render_progress_tab(indicator, long_df, citation, t)
 
     if compare_indicator is not None:
         with tab_map["gap"]:
@@ -454,22 +459,31 @@ def _render_insights_tab(
     )
 
 
+def _default_focus_places(
+    indicator, long_df: pd.DataFrame, n: int = 5
+) -> list[str]:  # noqa: ANN001 - Indicator, avoids import cycle noise
+    """Countries furthest behind on this indicator -- where a trend or a
+    target actually matters. For a higher_is_better metric like electricity
+    access, that's the smallest values; the already-saturated places all
+    look identical near the ceiling and add nothing to a chart. For a
+    lower_is_better metric it's the largest values.
+    """
+    ascending = indicator.polarity == "higher_is_better"
+    return (
+        long_df.nsmallest(n, "value")["place_dcid"].tolist()
+        if ascending
+        else long_df.nlargest(n, "value")["place_dcid"].tolist()
+    )
+
+
 def _render_trends_tab(
     indicator, long_df: pd.DataFrame, citation, t
 ) -> None:  # noqa: ANN001 - Indicator/Citation, avoids import cycle noise
-    default_n = 5
-    # Default to the lowest values, not the highest: for a higher_is_better
-    # metric like electricity access, the countries furthest behind are the
-    # ones where a trend actually matters. The already-saturated places all
-    # look identical near the ceiling and add nothing to the chart. This is
-    # only the *default* selection now -- the multiselect below can widen it
-    # to any subset, up to every country, so data is never permanently hidden.
-    ascending = indicator.polarity == "higher_is_better"
-    default_places = (
-        long_df.nsmallest(default_n, "value")["place_dcid"].tolist()
-        if ascending
-        else long_df.nlargest(default_n, "value")["place_dcid"].tolist()
-    )
+    # _default_focus_places picks the countries furthest behind. That is
+    # only the *default* selection here -- the multiselect below can widen
+    # it to any subset, up to every country, so data is never permanently
+    # hidden.
+    default_places = _default_focus_places(indicator, long_df)
     series_df = _load_indicator_series(indicator.key)
     if series_df.empty:
         st.info(t.t("info.need_history"))
@@ -524,6 +538,59 @@ def _render_trends_tab(
         total_places=len(all_places),
         anomalies=anomalies,
         place_names=names,
+    )
+
+
+def _render_progress_tab(
+    indicator, long_df: pd.DataFrame, citation, t
+) -> None:  # noqa: ANN001 - Indicator/Citation, avoids import cycle noise
+    series_df = _load_indicator_series(indicator.key)
+    if series_df.empty:
+        st.info(t.t("info.need_history"))
+        return
+
+    names = (
+        long_df.set_index("place_dcid")["place_name"].dropna().to_dict()
+        if "place_name" in long_df.columns
+        else {}
+    )
+    series_df = series_df.copy()
+    series_df["place_name"] = series_df["place_dcid"].map(names)
+
+    default_places = _default_focus_places(indicator, long_df)
+    # Restrict the toggle to places we can actually name -- an unnamed dcid
+    # in the picker is just noise for a "pick a country" control.
+    available = sorted(
+        (d for d in series_df["place_dcid"].unique() if d in names),
+        key=lambda d: names[d],
+    )
+    selected = st.multiselect(
+        "Countries to compare",
+        options=available,
+        default=[d for d in default_places if d in available],
+        format_func=lambda d: names.get(d, d),
+        key=f"progress_places_{indicator.key}",
+    )
+    if not selected:
+        st.info("Pick at least one country to see its progress toward the target.")
+        return
+
+    results = compute_progress(
+        series_df,
+        polarity=indicator.polarity,
+        target_value=indicator.target_value,
+        target_year=indicator.target_year,
+    )
+    progress = {r.place_dcid: r for r in results}
+
+    render_progress_panel(
+        series_df,
+        selected,
+        [citation],
+        progress,
+        target_value=indicator.target_value,
+        target_year=indicator.target_year,
+        unit_display=indicator.unit_display or indicator.unit,
     )
 
 
