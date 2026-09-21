@@ -19,7 +19,7 @@ from analytics.gap_scoring import priority_score, unserved_population
 from analytics.trends import fit_trends_excluding_saturated
 from recipe.attribution import citation_for_indicator
 from recipe.cache import cached_data
-from recipe.catalog import load_catalog
+from recipe.catalog import load_catalog, selectable_indicators
 from recipe.datacommons_client import get_client
 from recipe.source_checks import check_all_pulls
 from recipe.sources import client_for_indicator, load_sources
@@ -36,6 +36,7 @@ from views.choropleth import render_choropleth
 from views.compatibility import render_compatibility_panel
 from views.coverage_panel import render_coverage_panel
 from views.insights_panel import render_archetypes, render_convergence
+from views.picker import indicator_option_label
 from views.priority_table import render_priority_table
 from views.sources_panel import render_sources_panel
 from views.trend_panel import render_trend_panel
@@ -98,6 +99,19 @@ def _load_source_checks() -> list:
     return check_all_pulls()
 
 
+def _drop_stale_selection(key: str, valid: list[str]) -> None:
+    """Clear a remembered selection that the current options no longer contain.
+
+    These are the app's only widgets with a `key`, and they need one so a
+    choice survives changing the topic filter. The cost is that Streamlit
+    raises if a remembered value is missing from the options, which happens
+    the moment a filter narrows past the current selection. Dropping the key
+    falls the widget back to its first option instead.
+    """
+    if key in st.session_state and st.session_state[key] not in valid:
+        del st.session_state[key]
+
+
 def main() -> None:
     catalog = load_catalog()
 
@@ -107,31 +121,45 @@ def main() -> None:
         "across UN agencies — no new code per indicator."
     )
 
-    topic_keys = list(catalog.topics.keys())
-    topic_key = st.sidebar.selectbox(
-        "Topic",
-        topic_keys,
+    # Topic is a filter, not a gate: it narrows the list below but never
+    # restricts what can be compared against what. Leaving it empty shows
+    # everything, which is the default.
+    topic_filter = st.sidebar.multiselect(
+        "Narrow the list by topic (optional)",
+        list(catalog.topics),
         format_func=lambda k: catalog.topics[k].label,
+        key="topic_filter",
     )
-    topic_indicators = catalog.indicators_for_topic(topic_key)
-    if not topic_indicators:
-        st.warning("No indicators are set up yet for this topic.")
+    options = selectable_indicators(catalog, set(topic_filter))
+    if not options:
+        st.warning("No indicators match that topic filter yet — try clearing it.")
         return
 
+    _drop_stale_selection("indicator_key", [i.key for i in options])
     indicator_key = st.sidebar.selectbox(
         "Indicator",
-        [i.key for i in topic_indicators],
-        format_func=lambda k: catalog.indicators[k].label,
+        [i.key for i in options],
+        format_func=lambda k: indicator_option_label(catalog.indicators[k], catalog),
+        key="indicator_key",
     )
     indicator = catalog.indicators[indicator_key]
 
-    all_indicators = [i for i in catalog.indicators.values() if i.role != "denominator"]
+    # Deliberately NOT narrowed by the topic filter: comparing across topics is
+    # the point, and having to clear a filter to reach the other half of the
+    # catalog is the exact friction this replaced.
+    compare_options = [
+        i.key for i in selectable_indicators(catalog) if i.key != indicator_key
+    ]
+    _drop_stale_selection("compare_key", ["(none)"] + compare_options)
     compare_key = st.sidebar.selectbox(
         "Compare against",
-        ["(none)"] + [i.key for i in all_indicators if i.key != indicator_key],
+        ["(none)"] + compare_options,
         format_func=lambda k: (
-            "(none)" if k == "(none)" else catalog.indicators[k].label
+            "(none)"
+            if k == "(none)"
+            else indicator_option_label(catalog.indicators[k], catalog)
         ),
+        key="compare_key",
     )
 
     geojson = _load_geojson()
@@ -216,7 +244,7 @@ def main() -> None:
         _render_coverage_tab(indicator, long_df, citation)
 
     with tab_map["Insights"]:
-        _render_insights_tab(catalog, topic_key, indicator, long_df, citation, priority)
+        _render_insights_tab(catalog, indicator, long_df, citation, priority)
 
     with tab_map["Sources"]:
         render_sources_panel(_load_source_checks(), load_sources())
@@ -224,7 +252,6 @@ def main() -> None:
 
 def _render_insights_tab(
     catalog,
-    topic_key: str,
     indicator,
     long_df: pd.DataFrame,
     citation,
@@ -267,9 +294,14 @@ def _render_insights_tab(
 
     st.divider()
 
+    # Siblings now follow the selected indicator rather than a separate
+    # sidebar topic: any indicator sharing a topic with it. The sidebar no
+    # longer tracks one "current" topic, and this is the better question
+    # anyway -- what else describes the same subject as the thing on screen.
+    sibling_topics = {t.key for t in catalog.topics_for_indicator(indicator.key)}
     topic_indicators = [
         i
-        for i in catalog.indicators_for_topic(topic_key)
+        for i in selectable_indicators(catalog, sibling_topics)
         if i.enriched and i.key != indicator.key
     ]
     feature_keys = [indicator.key] + [i.key for i in topic_indicators][:2]
@@ -299,8 +331,8 @@ def _render_insights_tab(
 
     if len(feature_frames) < 2:
         st.info(
-            "This view needs at least two indicators set up for this topic — "
-            "there's only one available right now."
+            "This view needs at least two indicators covering the same "
+            "subject — there's only one available right now."
         )
         return
 

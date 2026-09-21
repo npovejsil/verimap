@@ -74,6 +74,16 @@ class Catalog:
     dimensions: dict[str, Any]
     units: dict[str, Any]
 
+    def topics_for_indicator(self, indicator_key: str) -> list[Topic]:
+        """The topics an indicator belongs to, in catalog order.
+
+        The inverse of indicators_for_topic. Used to label an indicator in a
+        flat, un-grouped picker list, and to find its siblings now that the
+        sidebar no longer tracks a single "current" topic.
+        """
+        indicator = self.indicators[indicator_key]
+        return [self.topics[t] for t in indicator.topics if t in self.topics]
+
     def indicators_for_topic(self, topic_key: str) -> list[Indicator]:
         return [ind for ind in self.indicators.values() if topic_key in ind.topics]
 
@@ -178,4 +188,36 @@ def load_catalog(catalog_dir: Path = CATALOG_DIR) -> Catalog:
 
     return Catalog(
         indicators=indicators, topics=topics, dimensions=dimensions, units=units
+    )
+
+
+def selectable_indicators(
+    catalog: Catalog, topic_filter: set[str] | None = None
+) -> list[Indicator]:
+    """Indicators a person can actually choose, optionally narrowed by topic.
+
+    Denominators are excluded: population is a divisor for other indicators,
+    not something to map on its own. `topic_filter` narrows the list, but an
+    empty or None filter means everything -- topics filter the picker, they no
+    longer gate it, so any indicator can be compared against any other.
+
+    Sorted by topic then label so a flat list still reads as grouped.
+    """
+    topic_order = list(catalog.topics)
+
+    def sort_key(indicator: Indicator) -> tuple[int, str]:
+        first = next(
+            (topic_order.index(t) for t in indicator.topics if t in topic_order),
+            len(topic_order),
+        )
+        return (first, indicator.label.lower())
+
+    return sorted(
+        (
+            i
+            for i in catalog.indicators.values()
+            if i.role != "denominator"
+            and (not topic_filter or set(i.topics) & topic_filter)
+        ),
+        key=sort_key,
     )
