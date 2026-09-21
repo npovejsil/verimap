@@ -173,7 +173,14 @@ def main() -> None:
     tab_map = dict(zip(tab_labels, tabs))
 
     with tab_map["Map"]:
-        render_choropleth(geojson, long_df, audit, [citation])
+        render_choropleth(
+            geojson,
+            long_df,
+            audit,
+            [citation],
+            indicator_label=indicator.label,
+            unit_display=indicator.unit_display or indicator.unit,
+        )
 
     with tab_map["Trends"]:
         _render_trends_tab(indicator, long_df, citation)
