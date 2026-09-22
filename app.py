@@ -47,8 +47,9 @@ from views.sources_panel import render_sources_panel
 from views.trend_panel import render_trend_panel
 
 # Runs at import, before any widget exists, so this one string cannot follow
-# the language switcher -- it stays English rather than lagging a rerun behind.
-st.set_page_config(page_title="UN SDG Cross-Agency Dashboard", layout="wide")
+# the language switcher -- it stays the untranslated product name rather
+# than lagging a rerun behind.
+st.set_page_config(page_title="VeriMap", layout="wide")
 
 
 @cached_data(ttl=3600)
@@ -155,6 +156,7 @@ def main() -> None:
         st.caption(t.t("rtl.notice"))
 
     st.title(t.t("app.title"))
+    st.markdown(f"##### {t.t('app.subtitle')}")
     st.caption(t.t("app.caption"))
 
     # Topic is a filter, not a gate: it narrows the list below but never

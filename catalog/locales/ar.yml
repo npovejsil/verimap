@@ -21,13 +21,14 @@ numbers:
   list_separator: "، "
 
 ui:
-  app.title: "لوحة مؤشرات أهداف التنمية المستدامة المشتركة بين وكالات الأمم المتحدة"
+  app.title: "VeriMap"
+  app.subtitle: "لوحة مؤشرات أهداف التنمية المستدامة المشتركة بين وكالات الأمم المتحدة"
   app.caption: >-
     طريقة قابلة لإعادة الاستخدام لجلب مؤشرات وكالات الأمم المتحدة والتحقق
-    منها وربطها — دون كتابة شفرة جديدة لكل مؤشر.
+    منها وربطها.
 
   sidebar.language: "اللغة"
-  sidebar.topic_filter: "تضييق القائمة حسب الموضوع (اختياري)"
+  sidebar.topic_filter: "مجال موضوع المشروع"
   picker.other_topic: "أخرى"
   sidebar.indicator: "المؤشر"
   sidebar.compare: "المقارنة مع"

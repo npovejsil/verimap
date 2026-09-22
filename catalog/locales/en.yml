@@ -23,13 +23,14 @@ numbers:
   list_separator: ", "
 
 ui:
-  app.title: "UN SDG Cross-Agency Dashboard"
+  app.title: "VeriMap"
+  app.subtitle: "UN SDG Cross-Agency Dashboard"
   app.caption: >-
     A reusable recipe for retrieving, validating, and joining indicators
-    across UN agencies — no new code per indicator.
+    across UN agencies.
 
   sidebar.language: "Language"
-  sidebar.topic_filter: "Narrow the list by topic (optional)"
+  sidebar.topic_filter: "Project Topic Area"
   picker.other_topic: "Other"
   sidebar.indicator: "Indicator"
   sidebar.compare: "Compare against"

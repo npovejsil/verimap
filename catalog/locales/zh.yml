@@ -13,12 +13,13 @@ numbers:
   list_separator: "、"
 
 ui:
-  app.title: "联合国可持续发展目标跨机构数据面板"
+  app.title: "VeriMap"
+  app.subtitle: "联合国可持续发展目标跨机构数据面板"
   app.caption: >-
-    一套可复用的方法，用于获取、验证并关联联合国各机构的指标数据——每新增一个指标都无需编写新代码。
+    一套可复用的方法，用于获取、验证并关联联合国各机构的指标数据。
 
   sidebar.language: "语言"
-  sidebar.topic_filter: "按主题筛选列表（可选）"
+  sidebar.topic_filter: "项目主题领域"
   picker.other_topic: "其他"
   sidebar.indicator: "指标"
   sidebar.compare: "对比指标"

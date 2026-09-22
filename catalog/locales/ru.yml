@@ -13,13 +13,14 @@ numbers:
   list_separator: ", "
 
 ui:
-  app.title: "Межучрежденческая панель ЦУР ООН"
+  app.title: "VeriMap"
+  app.subtitle: "Межучрежденческая панель ЦУР ООН"
   app.caption: >-
     Многократно используемый рецепт получения, проверки и объединения
-    показателей разных учреждений ООН — без нового кода под каждый показатель.
+    показателей разных учреждений ООН.
 
   sidebar.language: "Язык"
-  sidebar.topic_filter: "Сузить список по теме (необязательно)"
+  sidebar.topic_filter: "Тематическая область проекта"
   picker.other_topic: "Прочее"
   sidebar.indicator: "Показатель"
   sidebar.compare: "Сравнить с"

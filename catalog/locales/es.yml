@@ -13,13 +13,14 @@ numbers:
   list_separator: ", "
 
 ui:
-  app.title: "Panel de los ODS de la ONU entre organismos"
+  app.title: "VeriMap"
+  app.subtitle: "Panel de los ODS de la ONU entre organismos"
   app.caption: >-
     Una receta reutilizable para obtener, validar y combinar indicadores de
-    distintos organismos de la ONU: sin código nuevo por indicador.
+    distintos organismos de la ONU.
 
   sidebar.language: "Idioma"
-  sidebar.topic_filter: "Filtrar la lista por tema (opcional)"
+  sidebar.topic_filter: "Área temática del proyecto"
   picker.other_topic: "Otros"
   sidebar.indicator: "Indicador"
   sidebar.compare: "Comparar con"
