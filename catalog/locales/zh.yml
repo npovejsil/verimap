@@ -13,12 +13,13 @@ numbers:
   list_separator: "、"
 
 ui:
-  app.title: "联合国可持续发展目标跨机构数据面板"
+  app.title: "VeriMap"
+  app.subtitle: "联合国可持续发展目标跨机构数据面板"
   app.caption: >-
-    一套可复用的方法，用于获取、验证并关联联合国各机构的指标数据——每新增一个指标都无需编写新代码。
+    一套可复用的方法，用于获取、验证并关联联合国各机构的指标数据。
 
   sidebar.language: "语言"
-  sidebar.topic_filter: "按主题筛选列表（可选）"
+  sidebar.topic_filter: "项目主题领域"
   picker.other_topic: "其他"
   sidebar.indicator: "指标"
   sidebar.compare: "对比指标"
@@ -29,7 +30,6 @@ ui:
 
   tab.map: "地图"
   tab.trends: "趋势"
-  tab.progress: "进展"
   tab.gap: "差距分析"
   tab.priority: "优先级"
   tab.coverage: "数据覆盖"
@@ -62,6 +62,11 @@ ui:
   trends.fit_legend: "{place} 趋势（{slope}/年）"
   trends.axis_year: "年份"
   trends.axis_value: "数值"
+  trends.axis_value_with_unit: "{indicator}（{unit}）"
+  trends.no_fixed_target: >-
+    该指标的可持续发展目标并非单一固定数值（例如"大幅提高"或"翻倍"），因此没有可绘制的目标线——下方仍会显示趋势。
+  trends.target_label: "目标：{value}"
+  trends.target_label_dated: "目标：{year}年达到{value}"
 
   coverage.title: "数据覆盖情况"
   coverage.places_reporting: "报告数据的地区"

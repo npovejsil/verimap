@@ -13,14 +13,14 @@ numbers:
   list_separator: ", "
 
 ui:
-  app.title: "Tableau de bord inter-agences des ODD de l'ONU"
+  app.title: "VeriMap"
+  app.subtitle: "Tableau de bord inter-agences des ODD de l'ONU"
   app.caption: >-
     Une recette réutilisable pour récupérer, valider et associer des
-    indicateurs de différentes agences de l'ONU — sans code nouveau par
-    indicateur.
+    indicateurs de différentes agences de l'ONU.
 
   sidebar.language: "Langue"
-  sidebar.topic_filter: "Filtrer la liste par thème (facultatif)"
+  sidebar.topic_filter: "Domaine thématique du projet"
   picker.other_topic: "Autre"
   sidebar.indicator: "Indicateur"
   sidebar.compare: "Comparer avec"
@@ -31,7 +31,6 @@ ui:
 
   tab.map: "Carte"
   tab.trends: "Tendances"
-  tab.progress: "Progression"
   tab.gap: "Analyse des écarts"
   tab.priority: "Priorité"
   tab.coverage: "Couverture"
@@ -72,6 +71,13 @@ ui:
   trends.fit_legend: "{place} tendance ({slope}/an)"
   trends.axis_year: "Année"
   trends.axis_value: "valeur"
+  trends.axis_value_with_unit: "{indicator} ({unit})"
+  trends.no_fixed_target: >-
+    La cible des ODD pour cet indicateur n'est pas un nombre fixe unique (par
+    ex. « augmenter substantiellement » ou « doubler le taux »), donc aucune
+    ligne cible n'est tracée -- la tendance reste affichée ci-dessous.
+  trends.target_label: "Cible : {value}"
+  trends.target_label_dated: "Cible : {value} d'ici {year}"
 
   coverage.title: "Couverture des données"
   coverage.places_reporting: "Lieux déclarants"

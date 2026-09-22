@@ -21,13 +21,14 @@ numbers:
   list_separator: "، "
 
 ui:
-  app.title: "لوحة مؤشرات أهداف التنمية المستدامة المشتركة بين وكالات الأمم المتحدة"
+  app.title: "VeriMap"
+  app.subtitle: "لوحة مؤشرات أهداف التنمية المستدامة المشتركة بين وكالات الأمم المتحدة"
   app.caption: >-
     طريقة قابلة لإعادة الاستخدام لجلب مؤشرات وكالات الأمم المتحدة والتحقق
-    منها وربطها — دون كتابة شفرة جديدة لكل مؤشر.
+    منها وربطها.
 
   sidebar.language: "اللغة"
-  sidebar.topic_filter: "تضييق القائمة حسب الموضوع (اختياري)"
+  sidebar.topic_filter: "مجال موضوع المشروع"
   picker.other_topic: "أخرى"
   sidebar.indicator: "المؤشر"
   sidebar.compare: "المقارنة مع"
@@ -38,7 +39,6 @@ ui:
 
   tab.map: "الخريطة"
   tab.trends: "الاتجاهات"
-  tab.progress: "التقدم"
   tab.gap: "تحليل الفجوات"
   tab.priority: "الأولوية"
   tab.coverage: "تغطية البيانات"
@@ -76,6 +76,13 @@ ui:
   trends.fit_legend: "{place} الاتجاه ({slope}/سنة)"
   trends.axis_year: "السنة"
   trends.axis_value: "القيمة"
+  trends.axis_value_with_unit: "{indicator} ({unit})"
+  trends.no_fixed_target: >-
+    الهدف الإنمائي المستدام لهذا المؤشر ليس رقمًا ثابتًا واحدًا (مثل "زيادة
+    كبيرة" أو "مضاعفة المعدل")، لذا لا يوجد خط هدف يُرسم — يبقى الاتجاه
+    معروضًا أدناه.
+  trends.target_label: "الهدف: {value}"
+  trends.target_label_dated: "الهدف: {value} بحلول {year}"
 
   coverage.title: "تغطية البيانات"
   coverage.places_reporting: "المواقع المبلِّغة"

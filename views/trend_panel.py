@@ -3,7 +3,14 @@
 Plotly, faceted by indicator when units differ, so two incompatible units
 never share one y-axis. Overlays the OLS fit line for countries where a
 trend was computed (saturated countries are shown as raw series only, with
-no fit line, since their "trend" measures a ceiling, not progress).
+no fit line, since their "trend" measures a ceiling, not progress), unless
+`show_trend_lines` is off -- the caller wires that to a toggle so the raw
+series can be read on its own.
+
+When `target_value`/`target_year` are given (from the indicator's SDG
+target, when it has a single fixed number), a target line and target-year
+marker are drawn on the same axes -- this is the Trends tab absorbing what
+used to be the separate Progress tab's headline chart element.
 
 Anomalies (see analytics/anomalies.py) get two treatments depending on
 whether their country is currently charted: a marker on the line itself,
@@ -39,9 +46,13 @@ def render_trend_panel(
     saturated_places: set[str] | None = None,
     value_col: str = "value",
     unit_display: str | None = None,
+    indicator_label: str | None = None,
     total_places: int | None = None,
     anomalies: list[Anomaly] | None = None,
     place_names: dict[str, str] | None = None,
+    show_trend_lines: bool = True,
+    target_value: float | None = None,
+    target_year: int | None = None,
 ) -> None:
     """Plot value-over-time lines for the given places, with optional fit lines.
 
@@ -49,7 +60,13 @@ def render_trend_panel(
     so a limited selection is never silently mistaken for the full picture.
     `anomalies`, when given, overlays markers for anomalies in currently
     plotted countries and lists every detected anomaly (plotted or not) in
-    a summary table below the chart.
+    a summary table below the chart. `indicator_label`, when given, is
+    combined with `unit_display` into the y-axis title (e.g. "Electricity
+    access (%)") -- a bare unit like "%" tells a first-time viewer nothing
+    about what's actually being measured. `show_trend_lines` gates the
+    dotted OLS fit-line overlay; the raw series are always shown regardless.
+    `target_value`/`target_year` draw the SDG target as a horizontal/vertical
+    reference line when the indicator has one.
     """
     require_citations(citations)
     trends = trends or {}
@@ -58,6 +75,9 @@ def render_trend_panel(
     place_names = place_names or {}
 
     st.subheader(t.t("trends.title"))
+
+    if target_value is None:
+        st.caption(t.t("trends.no_fixed_target"))
 
     if total_places is not None:
         st.caption(f"Showing {len(place_dcids)} of {total_places} countries.")
@@ -105,7 +125,7 @@ def render_trend_panel(
             )
         )
 
-        trend = trends.get(place_dcid)
+        trend = trends.get(place_dcid) if show_trend_lines else None
         if trend is not None:
             years = place_df["date"].astype(int)
             fit_y = trend.intercept + trend.slope * years
@@ -142,8 +162,35 @@ def render_trend_panel(
                 )
             )
 
+    if target_value is not None:
+        target_label = (
+            t.t(
+                "trends.target_label_dated",
+                value=f"{target_value:g}",
+                year=target_year,
+            )
+            if target_year is not None
+            else t.t("trends.target_label", value=f"{target_value:g}")
+        )
+        fig.add_hline(
+            y=target_value,
+            line_dash="dash",
+            line_color=tok.muted,
+            annotation_text=target_label,
+            annotation_position="top left",
+        )
+    if target_year is not None:
+        fig.add_vline(x=target_year, line_dash="dot", line_color=tok.muted)
+
+    if indicator_label and unit_display:
+        yaxis_title = t.t(
+            "trends.axis_value_with_unit", indicator=indicator_label, unit=unit_display
+        )
+    else:
+        yaxis_title = indicator_label or unit_display or t.t("trends.axis_value")
+
     fig.update_layout(
-        yaxis_title=unit_display or t.t("trends.axis_value"),
+        yaxis_title=yaxis_title,
         xaxis_title=t.t("trends.axis_year"),
         hovermode="x unified",
     )

@@ -1,109 +1,28 @@
-"""Render progress-toward-target: trend lines plus the target itself as a
-first-class mark on the chart, not just a number in a caption.
+"""Render the progress-toward-target summary table.
 
-Companion to `views/trend_panel.py`, which optimizes for stagnation/pace
-analysis across many places. This view optimizes for a sharper, more public
-question: "is this specific place going to make it, and by when?" -- so a
-target line, a target-year marker, and a per-place on-track table are the
-point, where trend_panel's OLS fit-line overlay is not.
+Companion to `views/trend_panel.py`, which now draws the target line and
+target-year marker directly on the Trends chart (the two used to live on
+separate tabs; the chart-with-target-overlay is trend_panel's job now).
+This module keeps the sharper, tabular question a chart can't answer at a
+glance: is this specific place on track, and by when.
 """
 
 from __future__ import annotations
 
 import pandas as pd
-import plotly.graph_objects as go
 import streamlit as st
 
 from analytics.progress import ProgressResult
-from recipe.attribution import Citation, require_citations
-from views.palette import active_tokens, apply_chart_chrome
 
 
-def render_progress_panel(
-    series_df: pd.DataFrame,
-    place_dcids: list[str],
-    citations: list[Citation],
-    progress: dict[str, ProgressResult],
-    target_value: float | None,
-    target_year: int | None,
-    unit_display: str | None = None,
-) -> None:
-    require_citations(citations)
-    st.subheader("Progress toward the target")
-
-    df = series_df[series_df["place_dcid"].isin(place_dcids)].sort_values("date")
-    if df.empty:
-        st.info("No time-series data for the selected places.")
-        return
-
-    if target_value is None:
-        st.caption(
-            "This indicator's SDG target isn't a single fixed number (e.g. "
-            '"substantially increase" or "double the rate"), so there\'s no '
-            "target line to plot against -- the trend is still shown below."
-        )
-
-    tok = active_tokens()
-    fig = go.Figure()
-    # Hues assigned in fixed slot order, never cycled -- see views/palette.py:
-    # the same country keeps its colour whatever else is on screen.
-    for slot, place_dcid in enumerate(place_dcids):
-        place_df = df[df["place_dcid"] == place_dcid]
-        if place_df.empty:
-            continue
-        name = (
-            place_df["place_name"].iloc[0]
-            if "place_name" in place_df.columns
-            else place_dcid
-        )
-        color = tok.categorical[slot % len(tok.categorical)]
-        fig.add_trace(
-            go.Scatter(
-                x=place_df["date"].astype(int),
-                y=place_df["value"],
-                mode="lines+markers",
-                name=name,
-                line=dict(color=color, width=2),
-                marker=dict(size=8, color=color, line=dict(width=2, color=tok.surface)),
-            )
-        )
-
-    if target_value is not None:
-        target_label = (
-            f"Target: {target_value:g} by {target_year}"
-            if target_year is not None
-            else f"Target: {target_value:g}"
-        )
-        fig.add_hline(
-            y=target_value,
-            line_dash="dash",
-            line_color=tok.muted,
-            annotation_text=target_label,
-            annotation_position="top left",
-        )
-    if target_year is not None:
-        fig.add_vline(x=target_year, line_dash="dot", line_color=tok.muted)
-
-    fig.update_layout(
-        yaxis_title=unit_display or "value",
-        xaxis_title="Year",
-    )
-    apply_chart_chrome(fig, tok)
-    st.plotly_chart(fig, use_container_width=True)
-
-    _render_summary_table(df, place_dcids, progress, target_value, target_year)
-
-    for c in citations:
-        st.caption(f"Source: {c.render()}")
-
-
-def _render_summary_table(
+def render_progress_summary(
     df: pd.DataFrame,
     place_dcids: list[str],
     progress: dict[str, ProgressResult],
     target_value: float | None,
     target_year: int | None,
 ) -> None:
+    st.subheader("Progress toward the target")
     names = (
         df.set_index("place_dcid")["place_name"].to_dict()
         if "place_name" in df.columns
