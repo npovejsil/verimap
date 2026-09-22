@@ -39,7 +39,6 @@ ui:
 
   tab.map: "الخريطة"
   tab.trends: "الاتجاهات"
-  tab.progress: "التقدم"
   tab.gap: "تحليل الفجوات"
   tab.priority: "الأولوية"
   tab.coverage: "تغطية البيانات"
@@ -78,6 +77,12 @@ ui:
   trends.axis_year: "السنة"
   trends.axis_value: "القيمة"
   trends.axis_value_with_unit: "{indicator} ({unit})"
+  trends.no_fixed_target: >-
+    الهدف الإنمائي المستدام لهذا المؤشر ليس رقمًا ثابتًا واحدًا (مثل "زيادة
+    كبيرة" أو "مضاعفة المعدل")، لذا لا يوجد خط هدف يُرسم — يبقى الاتجاه
+    معروضًا أدناه.
+  trends.target_label: "الهدف: {value}"
+  trends.target_label_dated: "الهدف: {value} بحلول {year}"
 
   coverage.title: "تغطية البيانات"
   coverage.places_reporting: "المواقع المبلِّغة"

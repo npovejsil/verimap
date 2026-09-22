@@ -41,7 +41,6 @@ ui:
 
   tab.map: "Map"
   tab.trends: "Trends"
-  tab.progress: "Progress"
   tab.gap: "Gap analysis"
   tab.priority: "Priority"
   tab.coverage: "Coverage"
@@ -81,6 +80,12 @@ ui:
   trends.axis_year: "Year"
   trends.axis_value: "value"
   trends.axis_value_with_unit: "{indicator} ({unit})"
+  trends.no_fixed_target: >-
+    This indicator's SDG target isn't a single fixed number (e.g.
+    "substantially increase" or "double the rate"), so there's no target
+    line to plot against -- the trend is still shown below.
+  trends.target_label: "Target: {value}"
+  trends.target_label_dated: "Target: {value} by {year}"
 
   coverage.title: "Data coverage"
   coverage.places_reporting: "Places reporting"

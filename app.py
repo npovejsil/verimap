@@ -42,7 +42,7 @@ from views.insights_panel import render_archetypes, render_convergence
 from views.lineage_panel import render_lineage_panel
 from views.picker import indicator_option_label
 from views.priority_table import render_priority_table
-from views.progress_panel import render_progress_panel
+from views.progress_panel import render_progress_summary
 from views.sources_panel import render_sources_panel
 from views.trend_panel import render_trend_panel
 
@@ -244,7 +244,7 @@ def main() -> None:
     # Tab *ids* are the dict keys and stay English; only what st.tabs displays
     # is translated. Keying the dict by the label would break every lookup
     # below the moment the language changes.
-    tab_keys = ["map", "trends", "progress"]
+    tab_keys = ["map", "trends"]
     if compare_indicator is not None:
         tab_keys.append("gap")
     has_priority_tab = (
@@ -278,9 +278,6 @@ def main() -> None:
 
     with tab_map["trends"]:
         _render_trends_tab(indicator, long_df, citation, t)
-
-    with tab_map["progress"]:
-        _render_progress_tab(indicator, long_df, citation, t)
 
     if compare_indicator is not None:
         with tab_map["gap"]:
@@ -499,8 +496,9 @@ def _render_trends_tab(
     series_df["place_name"] = series_df["place_dcid"].map(names)
 
     all_places = sorted(series_df["place_dcid"].unique(), key=lambda d: names.get(d, d))
-    # Keyed per-indicator so switching the sidebar indicator resets the
-    # selection instead of carrying stale place dcids into a new series.
+    # One selection drives both the chart and the progress table below it --
+    # this used to be two separate multiselects (Trends vs. Progress tabs)
+    # that could disagree on which countries were even being discussed.
     selected_places = st.multiselect(
         "Countries to chart",
         options=all_places,
@@ -529,6 +527,10 @@ def _render_trends_tab(
         series_df, polarity=indicator.polarity, trend_results=trend_results
     )
 
+    show_trend_lines = st.toggle(
+        "Show trend lines", value=True, key=f"show_trend_lines_{indicator.key}"
+    )
+
     render_trend_panel(
         series_df,
         selected_places,
@@ -541,42 +543,10 @@ def _render_trends_tab(
         total_places=len(all_places),
         anomalies=anomalies,
         place_names=names,
+        show_trend_lines=show_trend_lines,
+        target_value=indicator.target_value,
+        target_year=indicator.target_year,
     )
-
-
-def _render_progress_tab(
-    indicator, long_df: pd.DataFrame, citation, t
-) -> None:  # noqa: ANN001 - Indicator/Citation, avoids import cycle noise
-    series_df = _load_indicator_series(indicator.key)
-    if series_df.empty:
-        st.info(t.t("info.need_history"))
-        return
-
-    names = (
-        long_df.set_index("place_dcid")["place_name"].dropna().to_dict()
-        if "place_name" in long_df.columns
-        else {}
-    )
-    series_df = series_df.copy()
-    series_df["place_name"] = series_df["place_dcid"].map(names)
-
-    default_places = _default_focus_places(indicator, long_df)
-    # Restrict the toggle to places we can actually name -- an unnamed dcid
-    # in the picker is just noise for a "pick a country" control.
-    available = sorted(
-        (d for d in series_df["place_dcid"].unique() if d in names),
-        key=lambda d: names[d],
-    )
-    selected = st.multiselect(
-        "Countries to compare",
-        options=available,
-        default=[d for d in default_places if d in available],
-        format_func=lambda d: names.get(d, d),
-        key=f"progress_places_{indicator.key}",
-    )
-    if not selected:
-        st.info("Pick at least one country to see its progress toward the target.")
-        return
 
     results = compute_progress(
         series_df,
@@ -585,16 +555,12 @@ def _render_progress_tab(
         target_year=indicator.target_year,
     )
     progress = {r.place_dcid: r for r in results}
-
-    render_progress_panel(
-        series_df,
-        selected,
-        [citation],
+    render_progress_summary(
+        series_df[series_df["place_dcid"].isin(selected_places)],
+        selected_places,
         progress,
         target_value=indicator.target_value,
         target_year=indicator.target_year,
-        unit_display=indicator.unit_display or indicator.unit,
-        indicator_label=t.indicator(indicator),
     )
 
 

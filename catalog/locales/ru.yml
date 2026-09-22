@@ -31,7 +31,6 @@ ui:
 
   tab.map: "Карта"
   tab.trends: "Динамика"
-  tab.progress: "Прогресс"
   tab.gap: "Анализ разрывов"
   tab.priority: "Приоритет"
   tab.coverage: "Охват данных"
@@ -73,6 +72,12 @@ ui:
   trends.axis_year: "Год"
   trends.axis_value: "значение"
   trends.axis_value_with_unit: "{indicator} ({unit})"
+  trends.no_fixed_target: >-
+    Цель ЦУР для этого показателя не выражена одним фиксированным числом
+    (например, «существенно увеличить» или «удвоить темп»), поэтому линию
+    цели построить нельзя -- динамика всё равно показана ниже.
+  trends.target_label: "Цель: {value}"
+  trends.target_label_dated: "Цель: {value} к {year} году"
 
   coverage.title: "Охват данных"
   coverage.places_reporting: "Территорий с отчётностью"

@@ -31,7 +31,6 @@ ui:
 
   tab.map: "Mapa"
   tab.trends: "Tendencias"
-  tab.progress: "Progreso"
   tab.gap: "Análisis de brechas"
   tab.priority: "Prioridad"
   tab.coverage: "Cobertura"
@@ -73,6 +72,12 @@ ui:
   trends.axis_year: "Año"
   trends.axis_value: "valor"
   trends.axis_value_with_unit: "{indicator} ({unit})"
+  trends.no_fixed_target: >-
+    La meta de los ODS para este indicador no es un número fijo único (p. ej.
+    "aumentar sustancialmente" o "duplicar la tasa"), así que no hay línea de
+    meta que trazar; la tendencia se sigue mostrando abajo.
+  trends.target_label: "Meta: {value}"
+  trends.target_label_dated: "Meta: {value} para {year}"
 
   coverage.title: "Cobertura de datos"
   coverage.places_reporting: "Lugares que reportan"

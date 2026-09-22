@@ -30,7 +30,6 @@ ui:
 
   tab.map: "地图"
   tab.trends: "趋势"
-  tab.progress: "进展"
   tab.gap: "差距分析"
   tab.priority: "优先级"
   tab.coverage: "数据覆盖"
@@ -64,6 +63,10 @@ ui:
   trends.axis_year: "年份"
   trends.axis_value: "数值"
   trends.axis_value_with_unit: "{indicator}（{unit}）"
+  trends.no_fixed_target: >-
+    该指标的可持续发展目标并非单一固定数值（例如"大幅提高"或"翻倍"），因此没有可绘制的目标线——下方仍会显示趋势。
+  trends.target_label: "目标：{value}"
+  trends.target_label_dated: "目标：{year}年达到{value}"
 
   coverage.title: "数据覆盖情况"
   coverage.places_reporting: "报告数据的地区"
