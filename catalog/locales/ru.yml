@@ -71,6 +71,7 @@ ui:
   trends.fit_legend: "{place}, тренд ({slope}/год)"
   trends.axis_year: "Год"
   trends.axis_value: "значение"
+  trends.axis_value_with_unit: "{indicator} ({unit})"
 
   coverage.title: "Охват данных"
   coverage.places_reporting: "Территорий с отчётностью"

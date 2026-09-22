@@ -27,6 +27,7 @@ def render_progress_panel(
     target_value: float | None,
     target_year: int | None,
     unit_display: str | None = None,
+    indicator_label: str | None = None,
 ) -> None:
     require_citations(citations)
     st.subheader("Progress toward the target")
@@ -84,8 +85,13 @@ def render_progress_panel(
     if target_year is not None:
         fig.add_vline(x=target_year, line_dash="dot", line_color=tok.muted)
 
+    if indicator_label and unit_display:
+        yaxis_title = f"{indicator_label} ({unit_display})"
+    else:
+        yaxis_title = indicator_label or unit_display or "value"
+
     fig.update_layout(
-        yaxis_title=unit_display or "value",
+        yaxis_title=yaxis_title,
         xaxis_title="Year",
     )
     apply_chart_chrome(fig, tok)

@@ -39,6 +39,7 @@ def render_trend_panel(
     saturated_places: set[str] | None = None,
     value_col: str = "value",
     unit_display: str | None = None,
+    indicator_label: str | None = None,
     total_places: int | None = None,
     anomalies: list[Anomaly] | None = None,
     place_names: dict[str, str] | None = None,
@@ -49,7 +50,10 @@ def render_trend_panel(
     so a limited selection is never silently mistaken for the full picture.
     `anomalies`, when given, overlays markers for anomalies in currently
     plotted countries and lists every detected anomaly (plotted or not) in
-    a summary table below the chart.
+    a summary table below the chart. `indicator_label`, when given, is
+    combined with `unit_display` into the y-axis title (e.g. "Electricity
+    access (%)") -- a bare unit like "%" tells a first-time viewer nothing
+    about what's actually being measured.
     """
     require_citations(citations)
     trends = trends or {}
@@ -142,8 +146,15 @@ def render_trend_panel(
                 )
             )
 
+    if indicator_label and unit_display:
+        yaxis_title = t.t(
+            "trends.axis_value_with_unit", indicator=indicator_label, unit=unit_display
+        )
+    else:
+        yaxis_title = indicator_label or unit_display or t.t("trends.axis_value")
+
     fig.update_layout(
-        yaxis_title=unit_display or t.t("trends.axis_value"),
+        yaxis_title=yaxis_title,
         xaxis_title=t.t("trends.axis_year"),
         hovermode="x unified",
     )

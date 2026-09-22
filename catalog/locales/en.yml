@@ -79,6 +79,7 @@ ui:
   trends.fit_legend: "{place} trend ({slope}/yr)"
   trends.axis_year: "Year"
   trends.axis_value: "value"
+  trends.axis_value_with_unit: "{indicator} ({unit})"
 
   coverage.title: "Data coverage"
   coverage.places_reporting: "Places reporting"

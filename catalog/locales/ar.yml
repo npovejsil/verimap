@@ -76,6 +76,7 @@ ui:
   trends.fit_legend: "{place} الاتجاه ({slope}/سنة)"
   trends.axis_year: "السنة"
   trends.axis_value: "القيمة"
+  trends.axis_value_with_unit: "{indicator} ({unit})"
 
   coverage.title: "تغطية البيانات"
   coverage.places_reporting: "المواقع المبلِّغة"

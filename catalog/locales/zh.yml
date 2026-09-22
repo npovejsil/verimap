@@ -62,6 +62,7 @@ ui:
   trends.fit_legend: "{place} 趋势（{slope}/年）"
   trends.axis_year: "年份"
   trends.axis_value: "数值"
+  trends.axis_value_with_unit: "{indicator}（{unit}）"
 
   coverage.title: "数据覆盖情况"
   coverage.places_reporting: "报告数据的地区"

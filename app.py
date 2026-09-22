@@ -535,6 +535,7 @@ def _render_trends_tab(
         trends=trends,
         saturated_places=set(saturated_places),
         unit_display=indicator.unit_display or indicator.unit,
+        indicator_label=t.indicator(indicator),
         total_places=len(all_places),
         anomalies=anomalies,
         place_names=names,
@@ -591,6 +592,7 @@ def _render_progress_tab(
         target_value=indicator.target_value,
         target_year=indicator.target_year,
         unit_display=indicator.unit_display or indicator.unit,
+        indicator_label=t.indicator(indicator),
     )
 
 
