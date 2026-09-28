@@ -1,4 +1,4 @@
-# data-bears-hackathon
+# VeriMap
 UN System Data Commons Builders Day - Data Bears Team
 
 ## Data sources
